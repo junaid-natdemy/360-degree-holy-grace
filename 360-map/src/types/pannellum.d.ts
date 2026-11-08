@@ -5,6 +5,8 @@ declare module 'pannellum/build/pannellum.js'
 
 export interface PannellumViewer {
   destroy: () => void
+  on: (event: string, handler: () => void) => void
+  off: (event: string, handler: () => void) => void
   getYaw: () => number
   setYaw: (yaw: number, animated?: boolean | number) => void
   getPitch: () => number

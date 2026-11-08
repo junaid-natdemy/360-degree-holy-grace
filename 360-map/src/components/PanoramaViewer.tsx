@@ -10,6 +10,8 @@ export interface PanoramaViewerProps {
   standard: string
   /** Full-detail image, only used when the device can hold the texture. */
   highRes?: string
+  /** Called once the chosen texture has finished loading. */
+  onReady?: () => void
   className?: string
 }
 
@@ -64,10 +66,17 @@ export default function PanoramaViewer({
   preview,
   standard,
   highRes,
+  onReady,
   className,
 }: PanoramaViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<PannellumViewer | null>(null)
+  // Held in a ref so a new callback identity never recreates the viewer.
+  const onReadyRef = useRef(onReady)
+
+  useEffect(() => {
+    onReadyRef.current = onReady
+  }, [onReady])
 
   useEffect(() => {
     const container = containerRef.current
@@ -87,6 +96,8 @@ export default function PanoramaViewer({
       minHfov: 50,
       maxHfov: 120,
     })
+
+    viewer.on('load', () => onReadyRef.current?.())
 
     viewerRef.current = viewer
 

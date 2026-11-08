@@ -17,6 +17,7 @@ export interface PannellumViewer {
 export interface PannellumConfig {
   type: 'equirectangular' | 'cubemap' | 'multires'
   panorama: string
+  preview?: string
   autoLoad?: boolean
   autoRotate?: number
   compass?: boolean

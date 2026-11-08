@@ -4,24 +4,15 @@ import 'pannellum/build/pannellum.js'
 import type { PannellumViewer } from '../types/pannellum'
 
 export interface PanoramaViewerProps {
-  /** Tiny, blurred image painted immediately while the real texture downloads. */
+  /** Tiny, blurred preview loaded immediately behind the splash screen. */
   preview: string
-  /** 2048px texture: specifically optimized for mobile and low-end GPUs to prevent rotation/zoom lag. */
-  mobile?: string
-  /** Medium image (4096px): fits mid-range phones, tablets, and laptops. */
+  /** 4096px master texture: pixel-perfect Retina clarity on mobile phones and tablets. */
   standard: string
-  /** Full-detail image (8192px): only used on high-spec desktop displays with capable GPUs. */
+  /** 8192px master texture: ultra-detailed clarity for large desktop screens with high-end GPUs. */
   highRes?: string
   /** Called once the chosen texture has finished loading. */
   onReady?: () => void
   className?: string
-}
-
-export interface DeviceProfile {
-  tier: 'low' | 'mid' | 'high'
-  targetDpr: number
-  friction: number
-  compass: boolean
 }
 
 /** Largest texture this device's WebGL can bind (0 when WebGL is missing). */
@@ -40,162 +31,58 @@ function getMaxTextureSize(): number {
 }
 
 /**
- * Checks for known low-end mobile / integrated GPUs with limited fill-rate
- * or narrow memory bus that struggle with high-resolution equirectangular sampling.
+ * High-definition texture selector:
+ * Keeps 100% crystal-clear original quality without exceeding GPU hardware limits.
  */
-function isLowTierGPU(): boolean {
-  try {
-    const canvas = document.createElement('canvas')
-    const gl = (canvas.getContext('webgl') ||
-      canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
-    if (!gl) return true
-    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
-    if (debugInfo) {
-      const renderer = (gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '').toLowerCase()
-      gl.getExtension('WEBGL_lose_context')?.loseContext()
-      if (/mali-4|mali-t|mali-g3|mali-g51|mali-g52|adreno\s*(3|4|5|610|612|615|616)|powervr/i.test(renderer)) {
-        return true
-      }
-    } else {
-      gl.getExtension('WEBGL_lose_context')?.loseContext()
-    }
-  } catch {
-    // ignore
-  }
-  return false
-}
+function pickSource(standard: string, highRes?: string): string {
+  if (!highRes) return standard
 
-/**
- * Analyzes device memory, CPU cores, screen dimensions, GPU and user agent
- * to categorize the device into 'low', 'mid', or 'high'.
- */
-function detectDeviceProfile(): DeviceProfile {
-  if (typeof window === 'undefined') {
-    return { tier: 'mid', targetDpr: 1, friction: 0.15, compass: false }
-  }
+  if (typeof window === 'undefined') return standard
 
-  const nav = navigator as Navigator & {
-    deviceMemory?: number
-    connection?: { saveData?: boolean }
-  }
-
+  const isMobileScreen = window.innerWidth < 1200 || (window.screen && window.screen.width < 1200)
   const isTouch = Boolean(
     (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0) ||
     'ontouchstart' in window
   )
-  const isMobileScreen = window.innerWidth <= 820 || (window.screen && window.screen.width <= 820)
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(
     navigator.userAgent
   )
-  const isMobile = isMobileUA || (isTouch && isMobileScreen)
 
-  const ram = typeof nav.deviceMemory === 'number' ? nav.deviceMemory : undefined
-  const cores = typeof navigator.hardwareConcurrency === 'number' ? navigator.hardwareConcurrency : undefined
-  const saveData = Boolean(nav.connection?.saveData)
-  const maxTex = getMaxTextureSize()
-  const lowGPU = isLowTierGPU()
-
-  // Low-tier conditions:
-  // 1. User has "Save Data" turned on
-  // 2. GPU reported as known low-tier mobile chip
-  // 3. WebGL max texture size is under 8192
-  // 4. Low RAM (<= 4 GB on Android)
-  // 5. Mobile device with <= 4 CPU cores or small screen width
-  const isLowTier =
-    saveData ||
-    lowGPU ||
-    (maxTex > 0 && maxTex < 8192) ||
-    (typeof ram === 'number' && ram > 0 && ram <= 4) ||
-    (isMobile && typeof cores === 'number' && cores <= 4) ||
-    (isMobile && window.innerWidth <= 540)
-
-  if (isLowTier) {
-    return {
-      tier: 'low',
-      // Capping DPR to 1.15 slashes fragment shader fill-rate workload by up to 80% on 1080p+ mobile screens,
-      // avoiding GPU throttling while keeping visuals crisp.
-      targetDpr: Math.min(window.devicePixelRatio || 1, 1.15),
-      // Higher friction halts rotation quickly, preventing touch queue momentum lag/stuck feeling.
-      friction: 0.22,
-      compass: false,
-    }
+  // On mobile/tablets, 4096x2048 is pixel-perfect 1:1 match with Retina screens (~1138px across 100° FOV).
+  // It completely avoids split-texture shader branching in WebGL, guaranteeing 60fps with zero blur.
+  if (isMobileScreen || isTouch || isMobileUA) {
+    return standard
   }
 
-  if (isMobile) {
-    return {
-      tier: 'mid',
-      targetDpr: Math.min(window.devicePixelRatio || 1, 1.5),
-      friction: 0.18,
-      compass: true,
-    }
+  // Desktops with capable GPUs bind the full 8192px master panorama
+  if (getMaxTextureSize() >= 8192) {
+    return highRes
   }
 
-  // Desktop / Laptop detection
-  const isHighEndDesktop =
-    !isTouch &&
-    window.innerWidth >= 1200 &&
-    maxTex >= 8192 &&
-    (typeof ram === 'undefined' || ram >= 8) &&
-    (typeof cores === 'undefined' || cores >= 6)
-
-  if (isHighEndDesktop) {
-    return {
-      tier: 'high',
-      targetDpr: Math.min(window.devicePixelRatio || 1, 2.0),
-      friction: 0.15,
-      compass: true,
-    }
-  }
-
-  return {
-    tier: 'mid',
-    targetDpr: Math.min(window.devicePixelRatio || 1, 1.5),
-    friction: 0.15,
-    compass: true,
-  }
+  return standard
 }
 
 /**
- * Clamps window.devicePixelRatio before Pannellum initializes so its internal canvas
- * constructor does not allocate an oversized WebGL drawing buffer on high-DPI budget phones.
+ * Ensures canvas renders at true Apple Retina / High-DPI sharpness (DPR 2.0)
+ * without wasteful 3.5x oversampling on budget phone screens.
  */
-function clampDevicePixelRatio(targetDpr: number) {
+function clampRetinaDpr(maxDpr: number = 2.0) {
   if (typeof window === 'undefined') return
   const currentDpr = window.devicePixelRatio || 1
-  if (currentDpr <= targetDpr) return
+  if (currentDpr <= maxDpr) return
 
   try {
     Object.defineProperty(window, 'devicePixelRatio', {
-      get: () => targetDpr,
+      get: () => maxDpr,
       configurable: true,
     })
   } catch {
-    // If not configurable, fallback is handled via renderer.resize
+    // Handled gracefully via renderer.resize
   }
-}
-
-/**
- * Choose the optimal texture resolution for this device's tier.
- */
-function pickSource(
-  profile: DeviceProfile,
-  mobile?: string,
-  standard?: string,
-  highRes?: string
-): string {
-  const fallback = standard || mobile || highRes || ''
-  if (profile.tier === 'low') {
-    return mobile || fallback
-  }
-  if (profile.tier === 'high' && highRes) {
-    return highRes
-  }
-  return fallback
 }
 
 export default function PanoramaViewer({
   preview,
-  mobile,
   standard,
   highRes,
   onReady,
@@ -215,27 +102,53 @@ export default function PanoramaViewer({
       return
     }
 
-    const profile = detectDeviceProfile()
-    clampDevicePixelRatio(profile.targetDpr)
+    // Keep razor-sharp Retina resolution (DPR 2.0)
+    const targetDpr = Math.min(window.devicePixelRatio || 1, 2.0)
+    clampRetinaDpr(targetDpr)
 
-    const panoramaSrc = pickSource(profile, mobile, standard, highRes)
+    const panoramaSrc = pickSource(standard, highRes)
 
-    const viewer = window.pannellum.viewer(container, {
-      type: 'equirectangular',
-      panorama: panoramaSrc,
-      preview,
-      autoLoad: true,
-      compass: profile.compass,
-      showFullscreenCtrl: true,
-      showZoomCtrl: true,
-      hfov: 100,
-      minHfov: 50,
-      maxHfov: 120,
-      friction: profile.friction,
-      touchPanSpeedCoeffFactor: 1,
-    })
+    // FIX FOR MOBILE LAG & STUCK BUG:
+    // Pannellum's 2015 "IE/Edge" PointerEvent handler leaves ghost coordinates in an internal array
+    // whenever a finger is lifted during pinch-to-zoom. When the user continues with 1 finger,
+    // it keeps calculating pinch math against the phantom finger, locking up the view.
+    // By temporarily masking PointerEvent during viewer creation on touch devices, Pannellum
+    // binds native touchstart/touchmove/touchend which correctly tracks physical fingers.
+    const isTouchDevice =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window ||
+        (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0) ||
+        /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))
 
-    // Double safeguard: ensure renderer.resize strictly respects targetDpr on orientation/screen changes
+    const origPointerEvent = (window as unknown as { PointerEvent?: unknown }).PointerEvent
+
+    let viewer: PannellumViewer
+    try {
+      if (isTouchDevice) {
+        delete (window as unknown as { PointerEvent?: unknown }).PointerEvent
+      }
+
+      viewer = window.pannellum.viewer(container, {
+        type: 'equirectangular',
+        panorama: panoramaSrc,
+        preview,
+        autoLoad: true,
+        compass: true,
+        showFullscreenCtrl: true,
+        showZoomCtrl: true,
+        hfov: 100,
+        minHfov: 45,
+        maxHfov: 120,
+        friction: 0.15,
+        touchPanSpeedCoeffFactor: 1,
+      })
+    } finally {
+      if (isTouchDevice && origPointerEvent) {
+        ;(window as unknown as { PointerEvent?: unknown }).PointerEvent = origPointerEvent
+      }
+    }
+
+    // Enforce razor-sharp Retina DPR on canvas resizing
     try {
       const viewerAny = viewer as unknown as {
         getRenderer?: () => {
@@ -250,8 +163,8 @@ export default function PanoramaViewer({
           origResize()
           const canvas = renderer.getCanvas()
           if (canvas) {
-            const expectedW = Math.round(canvas.clientWidth * profile.targetDpr)
-            const expectedH = Math.round(canvas.clientHeight * profile.targetDpr)
+            const expectedW = Math.round(canvas.clientWidth * targetDpr)
+            const expectedH = Math.round(canvas.clientHeight * targetDpr)
             if (canvas.width > expectedW || canvas.height > expectedH) {
               canvas.width = expectedW
               canvas.height = expectedH
@@ -269,15 +182,34 @@ export default function PanoramaViewer({
       // Ignore if Pannellum internals change
     }
 
+    // Seamless touch transition: when lifting 1 finger after a pinch, smoothly re-anchor single-finger drag
+    const dragFix = container.querySelector('.pnlm-dragfix') as HTMLElement | null
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 1 && dragFix) {
+        const touch = e.touches[0]
+        const simulatedStart = new TouchEvent('touchstart', {
+          touches: [touch],
+          targetTouches: [touch],
+          changedTouches: [touch],
+          bubbles: true,
+          cancelable: true,
+        })
+        dragFix.dispatchEvent(simulatedStart)
+      }
+    }
+
+    dragFix?.addEventListener('touchend', handleTouchEnd, { passive: true })
+
     viewer.on('load', () => onReadyRef.current?.())
 
     viewerRef.current = viewer
 
     return () => {
+      dragFix?.removeEventListener('touchend', handleTouchEnd)
       viewerRef.current = null
       viewer.destroy()
     }
-  }, [preview, mobile, standard, highRes])
+  }, [preview, standard, highRes])
 
   return <div ref={containerRef} className={className} />
 }

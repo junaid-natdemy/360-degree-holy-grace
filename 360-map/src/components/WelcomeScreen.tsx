@@ -23,14 +23,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ imageReady }) => {
 
   useEffect(() => {
     const start = performance.now()
-    let frame = 0
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / DURATION_MS)
+    // A timer rather than requestAnimationFrame: rAF is paused in background
+    // tabs, which would otherwise freeze the count and trap the splash screen.
+    const id = window.setInterval(() => {
+      const t = Math.min(1, (performance.now() - start) / DURATION_MS)
       setPercent(Math.max(1, Math.round(t * 100)))
-      if (t < 1) frame = requestAnimationFrame(tick)
-    }
-    frame = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame)
+      if (t >= 1) window.clearInterval(id)
+    }, 60)
+    return () => window.clearInterval(id)
   }, [])
 
   useEffect(() => {

@@ -3,9 +3,9 @@ import PanoramaViewer from './components/PanoramaViewer'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import './App.css'
 
-const PANORAMA_PREVIEW = '/panoramas/pano-preview.jpg'
-const PANORAMA_STANDARD = '/panoramas/pano-4096.jpg'
-const PANORAMA_HIGH_RES = '/panoramas/pano-8192.jpg'
+const PANORAMA_PREVIEW = '/panoramas/panorama-preview.webp'
+const PANORAMA_STANDARD = '/panoramas/panorama.webp'
+const PANORAMA_HIGH_RES = '/panoramas/pano-8192.webp'
 
 function App() {
   const [imageReady, setImageReady] = useState(false)

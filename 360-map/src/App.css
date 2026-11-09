@@ -30,6 +30,11 @@
   transform: translateZ(0);
 }
 
+/* Hide Pannellum's default retro progress box so only our branded WelcomeScreen displays */
+.pnlm-load-box {
+  display: none !important;
+}
+
 .welcome-screen {
   position: fixed;
   inset: 0;

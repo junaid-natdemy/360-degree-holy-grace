@@ -5,7 +5,7 @@ import './App.css'
 
 const PANORAMA_PREVIEW = '/panoramas/panorama-preview.webp'
 const PANORAMA_STANDARD = '/panoramas/panorama.webp'
-const PANORAMA_HIGH_RES = '/panoramas/pano-8192.webp'
+const PANORAMA_FALLBACK = '/panoramas/pano-4096.jpg'
 
 function App() {
   const [imageReady, setImageReady] = useState(false)
@@ -16,7 +16,7 @@ function App() {
         className="panorama-viewer"
         preview={PANORAMA_PREVIEW}
         standard={PANORAMA_STANDARD}
-        highRes={PANORAMA_HIGH_RES}
+        fallback={PANORAMA_FALLBACK}
         onReady={() => setImageReady(true)}
       />
       <p className="panorama-hint">

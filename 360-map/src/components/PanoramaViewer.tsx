@@ -187,7 +187,10 @@ export default forwardRef<PanoramaViewerHandle, PanoramaViewerProps>(function Pa
           type: 'custom',
           cssClass: `campus-hotspot campus-hotspot--${m.category}`,
           createTooltipFunc: (div: HTMLElement) => {
-            div.className = `campus-hotspot-pin ${catDetails.badgeClass}`
+            div.className = `pnlm-hotspot-base campus-hotspot campus-hotspot-pin ${catDetails.badgeClass}`
+            div.style.position = 'absolute'
+            div.style.top = '0'
+            div.style.left = '0'
             const icon = catDetails.icon
             const label = m.name
             const stageTag =

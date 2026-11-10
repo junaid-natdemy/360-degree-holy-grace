@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import PanoramaViewer from './components/PanoramaViewer'
+import { useState, useEffect, useRef } from 'react'
+import PanoramaViewer, { type PanoramaViewerHandle } from './components/PanoramaViewer'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { MarkerFilterBar } from './components/MarkerFilterBar'
 import { MarkerDetailModal } from './components/MarkerDetailModal'
@@ -11,16 +11,18 @@ import './App.css'
 const PANORAMA_PREVIEW = '/panoramas/panorama-preview.webp'
 const PANORAMA_STANDARD = '/panoramas/panorama.webp'
 const PANORAMA_FALLBACK = '/panoramas/pano-4096.jpg'
-const STORAGE_KEY = 'holy_grace_360_custom_markers'
+const STORAGE_KEY = 'holy_grace_360_user_markers_v1'
 
 function App() {
   const [imageReady, setImageReady] = useState(false)
+  const viewerHandleRef = useRef<PanoramaViewerHandle>(null)
+
   const [markers, setMarkers] = useState<CampusMarker[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           return parsed
         }
       }
@@ -62,6 +64,16 @@ function App() {
     setIsEditorOpen(true)
   }
 
+  const handleAddMarkerDirect = () => {
+    const coords = viewerHandleRef.current?.getCurrentCoords() || { pitch: 0, yaw: 0 }
+    setEditingMarker({
+      pitch: coords.pitch,
+      yaw: coords.yaw,
+      category: 'building_with_stages',
+    })
+    setIsEditorOpen(true)
+  }
+
   const handleSaveMarker = (saved: CampusMarker) => {
     setMarkers((prev) => {
       const exists = prev.some((m) => m.id === saved.id)
@@ -94,9 +106,34 @@ function App() {
     alert('Campus markers exported to JSON and copied to your clipboard!')
   }
 
+  const handleImportMarkers = () => {
+    const jsonStr = prompt('Paste your exported markers JSON here:')
+    if (!jsonStr) return
+    try {
+      const parsed = JSON.parse(jsonStr)
+      if (Array.isArray(parsed)) {
+        setMarkers(parsed)
+        alert(`Successfully imported ${parsed.length} markers!`)
+      } else {
+        alert('Invalid JSON format: expected an array of markers.')
+      }
+    } catch {
+      alert('Failed to parse JSON. Please check the format.')
+    }
+  }
+
+  const handleClearAllMarkers = () => {
+    if (confirm('Are you sure you want to clear all custom markers and start fresh?')) {
+      setMarkers([])
+      setActiveMarker(null)
+      setFocusedMarker(null)
+    }
+  }
+
   return (
     <main className="panorama-page">
       <PanoramaViewer
+        ref={viewerHandleRef}
         className="panorama-viewer"
         preview={PANORAMA_PREVIEW}
         standard={PANORAMA_STANDARD}
@@ -118,14 +155,30 @@ function App() {
         onSelectMarker={handleSelectMarker}
         isMarkingMode={isMarkingMode}
         onToggleMarkingMode={() => setIsMarkingMode((prev) => !prev)}
+        onAddMarkerDirect={handleAddMarkerDirect}
         onExportMarkers={handleExportMarkers}
+        onImportMarkers={handleImportMarkers}
+        onClearAllMarkers={handleClearAllMarkers}
       />
 
       {/* Marking Mode Banner when active */}
       {isMarkingMode && (
         <div className="marking-mode-banner">
-          <span>🎯 <strong>Marking Mode Active:</strong> Click anywhere on the campus to place a building or area marker.</span>
-          <button onClick={() => setIsMarkingMode(false)}>Done</button>
+          <span>🎯 <strong>Marking Mode:</strong> Click anywhere on the campus to drop a pin.</span>
+          <div className="marking-mode-banner-actions">
+            <button
+              className="btn-mark-center"
+              onClick={() => {
+                const coords = viewerHandleRef.current?.getCurrentCoords() || { pitch: 0, yaw: 0 }
+                handlePanoramaClickToMark(coords)
+              }}
+            >
+              📍 Add at Center View
+            </button>
+            <button className="btn-mark-done" onClick={() => setIsMarkingMode(false)}>
+              Done
+            </button>
+          </div>
         </div>
       )}
 

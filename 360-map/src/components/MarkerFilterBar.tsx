@@ -8,7 +8,10 @@ interface MarkerFilterBarProps {
   onSelectMarker: (marker: CampusMarker) => void
   isMarkingMode: boolean
   onToggleMarkingMode: () => void
+  onAddMarkerDirect: () => void
   onExportMarkers: () => void
+  onImportMarkers: () => void
+  onClearAllMarkers: () => void
 }
 
 export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
@@ -18,7 +21,10 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
   onSelectMarker,
   isMarkingMode,
   onToggleMarkingMode,
+  onAddMarkerDirect,
   onExportMarkers,
+  onImportMarkers,
+  onClearAllMarkers,
 }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [isOpenList, setIsOpenList] = useState(false)
@@ -76,14 +82,21 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
           )}
         </div>
 
-        {/* Action Buttons: Marking Mode & Export */}
+        {/* Action Buttons: Add Marker, Marking Mode, Export, Import, Clear */}
         <div className="campus-toolbar-actions">
+          <button
+            className="btn-action btn-action--primary-highlight"
+            onClick={onAddMarkerDirect}
+            title="Open modal to add a new building, stage, or area"
+          >
+            ➕ Add Marker
+          </button>
           <button
             className={`btn-action ${isMarkingMode ? 'btn-action--active' : ''}`}
             onClick={onToggleMarkingMode}
-            title={isMarkingMode ? 'Click on panorama to place a marker' : 'Turn on Marking Tool'}
+            title={isMarkingMode ? 'Click on panorama to place a marker' : 'Turn on Click-to-Mark Tool'}
           >
-            {isMarkingMode ? '🎯 Marking: ON' : '✏️ Mark Campus'}
+            {isMarkingMode ? '🎯 Marking: ON' : '🎯 Click to Mark'}
           </button>
           <button
             className="btn-action btn-action--secondary"
@@ -92,8 +105,31 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
           >
             📋 Export
           </button>
+          <button
+            className="btn-action btn-action--secondary"
+            onClick={onImportMarkers}
+            title="Import custom markers from JSON"
+          >
+            📥 Import
+          </button>
+          {markers.length > 0 && (
+            <button
+              className="btn-action btn-action--danger-subtle"
+              onClick={onClearAllMarkers}
+              title="Clear all markers"
+            >
+              🗑️ Clear
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Empty State Banner if no markers exist */}
+      {markers.length === 0 && (
+        <div className="empty-markers-banner">
+          <span>📍 <strong>No markers added yet:</strong> Click <strong>"➕ Add Marker"</strong> or <strong>"🎯 Click to Mark"</strong> to start placing your buildings, stages, and areas.</span>
+        </div>
+      )}
 
       {/* Category Pills */}
       <div className="campus-category-pills">

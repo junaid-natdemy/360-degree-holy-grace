@@ -1,8 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import 'pannellum/build/pannellum.css'
 import 'pannellum/build/pannellum.js'
 import type { PannellumViewer } from '../types/pannellum'
 import type { CampusMarker, MarkerCategory } from '../types/marker'
+
+export interface PanoramaViewerHandle {
+  getCurrentCoords: () => { pitch: number; yaw: number } | null
+}
 
 export interface PanoramaViewerProps {
   /** Tiny, blurred preview loaded immediately behind the splash screen. */
@@ -107,25 +111,38 @@ async function loadPanoramaResilient(primaryUrl: string, fallbackUrl?: string): 
   }
 }
 
-export default function PanoramaViewer({
-  preview,
-  standard,
-  fallback,
-  markers = [],
-  selectedCategory = 'all',
-  focusedMarker,
-  isMarkingMode = false,
-  onMarkerClick,
-  onPanoramaClickToMark,
-  onReady,
-  className,
-}: PanoramaViewerProps) {
+export default forwardRef<PanoramaViewerHandle, PanoramaViewerProps>(function PanoramaViewer(
+  {
+    preview,
+    standard,
+    fallback,
+    markers = [],
+    selectedCategory = 'all',
+    focusedMarker,
+    isMarkingMode = false,
+    onMarkerClick,
+    onPanoramaClickToMark,
+    onReady,
+    className,
+  },
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<PannellumViewer | null>(null)
   const onReadyRef = useRef(onReady)
   const onMarkerClickRef = useRef(onMarkerClick)
   const onPanoramaClickToMarkRef = useRef(onPanoramaClickToMark)
   const isMarkingModeRef = useRef(isMarkingMode)
+
+  useImperativeHandle(ref, () => ({
+    getCurrentCoords: () => {
+      if (!viewerRef.current) return null
+      return {
+        pitch: parseFloat(viewerRef.current.getPitch().toFixed(2)),
+        yaw: parseFloat(viewerRef.current.getYaw().toFixed(2)),
+      }
+    },
+  }))
 
   useEffect(() => {
     onReadyRef.current = onReady
@@ -198,6 +215,7 @@ export default function PanoramaViewer({
     let active = true
     let blobUrlToRevoke: string | null = null
     let viewer: PannellumViewer | null = null
+    const cleanups: (() => void)[] = []
 
     const container = containerRef.current
     if (!container || !window.pannellum) {
@@ -305,10 +323,24 @@ export default function PanoramaViewer({
 
       dragFix?.addEventListener('touchend', handleTouchEnd, { passive: true })
 
+      let downX = 0
+      let downY = 0
+
+      const handleMouseDown = (e: MouseEvent) => {
+        downX = e.clientX
+        downY = e.clientY
+      }
+
       // Handle clicking in "Marking Mode" to drop new pins
       const handleViewerClick = (e: MouseEvent) => {
         if (!isMarkingModeRef.current || !viewerRef.current) return
         if ((e.target as HTMLElement).closest('.campus-hotspot-pin, .pnlm-hotspot, button')) return
+
+        const dist = Math.hypot(e.clientX - downX, e.clientY - downY)
+        if (dist > 8) {
+          // Drag / pan rotation detected, do not drop marker
+          return
+        }
 
         const coords = viewerRef.current.mouseEventToCoords(e)
         if (coords && coords.length === 2) {
@@ -316,7 +348,14 @@ export default function PanoramaViewer({
         }
       }
 
+      container.addEventListener('mousedown', handleMouseDown)
       container.addEventListener('click', handleViewerClick)
+
+      cleanups.push(() => {
+        container.removeEventListener('mousedown', handleMouseDown)
+        container.removeEventListener('click', handleViewerClick)
+        dragFix?.removeEventListener('touchend', handleTouchEnd)
+      })
 
       viewer.on('load', () => {
         if (viewer) syncHotspots(viewer)
@@ -328,6 +367,7 @@ export default function PanoramaViewer({
 
     return () => {
       active = false
+      cleanups.forEach((cleanup) => cleanup())
       if (viewer) {
         viewer.destroy()
       }
@@ -344,4 +384,4 @@ export default function PanoramaViewer({
       className={`${className || ''} ${isMarkingMode ? 'panorama-viewer--marking' : ''}`}
     />
   )
-}
+})

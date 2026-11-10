@@ -366,8 +366,41 @@
   box-shadow: 0 0 18px rgba(239, 68, 68, 0.6) !important;
 }
 
+.btn-action--primary-highlight {
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+}
+
+.btn-action--primary-highlight:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%) !important;
+  transform: translateY(-1px);
+}
+
+.btn-action--danger-subtle {
+  color: #fca5a5 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.btn-action--danger-subtle:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+}
+
 .btn-action--secondary {
   padding: 0 12px;
+}
+
+.empty-markers-banner {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  color: #e2e8f0;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  backdrop-filter: blur(8px);
 }
 
 /* Category Filter Pills Row */
@@ -485,12 +518,12 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 24;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(185, 28, 28, 0.95));
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.95), rgba(185, 28, 28, 0.95));
   color: #fff;
   padding: 8px 16px;
   border-radius: 999px;
   font-size: 13px;
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -498,11 +531,33 @@
   white-space: nowrap;
 }
 
-.marking-mode-banner button {
+.marking-mode-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-mark-center {
   background: #fff;
   border: none;
-  color: #b91c1c;
+  color: #1e1b4b;
   font-weight: 700;
+  font-size: 11.5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 100ms ease;
+}
+
+.btn-mark-center:hover {
+  transform: scale(1.05);
+}
+
+.btn-mark-done {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-weight: 600;
   font-size: 11.5px;
   padding: 3px 10px;
   border-radius: 999px;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { CampusMarker, MarkerCategory } from '../types/marker'
 
 interface MarkerEditorModalProps {
@@ -16,25 +16,37 @@ export const MarkerEditorModal: React.FC<MarkerEditorModalProps> = ({
   onSave,
   onDelete,
 }) => {
-  if (!isOpen || !marker) return null
+  const isEditing = Boolean(marker?.id)
 
-  const isEditing = Boolean(marker.id)
-
-  const [name, setName] = useState(marker.name || '')
+  const [name, setName] = useState(marker?.name || '')
   const [category, setCategory] = useState<MarkerCategory>(
-    marker.category || 'building_with_stages'
+    marker?.category || 'building_with_stages'
   )
   const [stagesText, setStagesText] = useState(
-    marker.stages ? marker.stages.join(', ') : ''
+    marker?.stages ? marker.stages.join(', ') : ''
   )
-  const [floorInfo, setFloorInfo] = useState(marker.floorInfo || '')
-  const [description, setDescription] = useState(marker.description || '')
+  const [floorInfo, setFloorInfo] = useState(marker?.floorInfo || '')
+  const [description, setDescription] = useState(marker?.description || '')
   const [pitch, setPitch] = useState<number>(
-    typeof marker.pitch === 'number' ? marker.pitch : 0
+    typeof marker?.pitch === 'number' ? marker.pitch : 0
   )
   const [yaw, setYaw] = useState<number>(
-    typeof marker.yaw === 'number' ? marker.yaw : 0
+    typeof marker?.yaw === 'number' ? marker.yaw : 0
   )
+
+  useEffect(() => {
+    if (marker) {
+      setName(marker.name || '')
+      setCategory(marker.category || 'building_with_stages')
+      setStagesText(marker.stages ? marker.stages.join(', ') : '')
+      setFloorInfo(marker.floorInfo || '')
+      setDescription(marker.description || '')
+      setPitch(typeof marker.pitch === 'number' ? marker.pitch : 0)
+      setYaw(typeof marker.yaw === 'number' ? marker.yaw : 0)
+    }
+  }, [marker])
+
+  if (!isOpen || !marker) return null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

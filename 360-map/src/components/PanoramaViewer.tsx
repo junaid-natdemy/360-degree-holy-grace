@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import 'pannellum/build/pannellum.css'
 import 'pannellum/build/pannellum.js'
 import type { PannellumViewer } from '../types/pannellum'
+import type { CampusMarker, MarkerCategory } from '../types/marker'
 
 export interface PanoramaViewerProps {
   /** Tiny, blurred preview loaded immediately behind the splash screen. */
@@ -12,9 +13,34 @@ export interface PanoramaViewerProps {
   highRes?: string
   /** JPEG fallback in case WebP fails on a restricted network or browser. */
   fallback?: string
+  /** Campus markers to display */
+  markers?: CampusMarker[]
+  /** Active category filter */
+  selectedCategory?: MarkerCategory | 'all'
+  /** Marker to focus / center on */
+  focusedMarker?: CampusMarker | null
+  /** Whether user is in "Marking Mode" to place new pins */
+  isMarkingMode?: boolean
+  /** Callback when user clicks a marker pin */
+  onMarkerClick?: (marker: CampusMarker) => void
+  /** Callback when user clicks panorama in marking mode to drop a pin */
+  onPanoramaClickToMark?: (coords: { pitch: number; yaw: number }) => void
   /** Called once the chosen texture has finished loading. */
   onReady?: () => void
   className?: string
+}
+
+function getCategoryIcon(cat: MarkerCategory): string {
+  switch (cat) {
+    case 'building_with_stages':
+      return '🏢'
+    case 'building':
+      return '🏛️'
+    case 'area_with_stages':
+      return '🎪'
+    case 'area':
+      return '📍'
+  }
 }
 
 /**
@@ -47,7 +73,7 @@ async function loadPanoramaResilient(primaryUrl: string, fallbackUrl?: string): 
     for (let i = 1; i <= attempts; i++) {
       try {
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 8000) // 8s timeout per attempt
+        const timeout = setTimeout(() => controller.abort(), 8000)
         const res = await fetch(url, { signal: controller.signal })
         clearTimeout(timeout)
         if (res.ok) {
@@ -57,7 +83,7 @@ async function loadPanoramaResilient(primaryUrl: string, fallbackUrl?: string): 
       } catch (err) {
         lastError = err
         if (i < attempts) {
-          await new Promise((r) => setTimeout(r, 600 * i))
+          await new Promise((r) => setTimeout(r, 500 * i))
         }
       }
     }
@@ -74,7 +100,6 @@ async function loadPanoramaResilient(primaryUrl: string, fallbackUrl?: string): 
         const fallbackBlob = await fetchWithRetry(fallbackUrl)
         return URL.createObjectURL(fallbackBlob)
       } catch {
-        // Return primary URL if fallback also fails
         return primaryUrl
       }
     }
@@ -85,19 +110,90 @@ async function loadPanoramaResilient(primaryUrl: string, fallbackUrl?: string): 
 export default function PanoramaViewer({
   preview,
   standard,
-  highRes,
   fallback,
+  markers = [],
+  selectedCategory = 'all',
+  focusedMarker,
+  isMarkingMode = false,
+  onMarkerClick,
+  onPanoramaClickToMark,
   onReady,
   className,
 }: PanoramaViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<PannellumViewer | null>(null)
   const onReadyRef = useRef(onReady)
+  const onMarkerClickRef = useRef(onMarkerClick)
+  const onPanoramaClickToMarkRef = useRef(onPanoramaClickToMark)
+  const isMarkingModeRef = useRef(isMarkingMode)
 
   useEffect(() => {
     onReadyRef.current = onReady
-  }, [onReady])
+    onMarkerClickRef.current = onMarkerClick
+    onPanoramaClickToMarkRef.current = onPanoramaClickToMark
+    isMarkingModeRef.current = isMarkingMode
+  })
 
+  // Synchronize hotspots whenever markers list or category filter changes
+  const syncHotspots = (viewer: PannellumViewer) => {
+    const activeMarkers = markers.filter(
+      (m) => selectedCategory === 'all' || m.category === selectedCategory
+    )
+
+    // Clear existing custom hotSpots
+    markers.forEach((m) => {
+      try {
+        viewer.removeHotSpot(m.id)
+      } catch {
+        // ignore
+      }
+    })
+
+    // Add filtered hotSpots
+    activeMarkers.forEach((m) => {
+      try {
+        viewer.addHotSpot({
+          id: m.id,
+          pitch: m.pitch,
+          yaw: m.yaw,
+          type: 'custom',
+          cssClass: `campus-hotspot campus-hotspot--${m.category}`,
+          createTooltipFunc: (div: HTMLElement) => {
+            div.className = `campus-hotspot-pin campus-hotspot-pin--${m.category}`
+            const icon = getCategoryIcon(m.category)
+            const label = m.badgeLabel || m.name
+            div.innerHTML = `
+              <div class="pin-badge">
+                <span class="pin-icon">${icon}</span>
+                <span class="pin-title">${label}</span>
+              </div>
+            `
+          },
+          clickHandlerFunc: () => {
+            onMarkerClickRef.current?.(m)
+          },
+        })
+      } catch (e) {
+        console.warn('Failed to add hotspot:', m.name, e)
+      }
+    })
+  }
+
+  // Smoothly focus on marker when selected
+  useEffect(() => {
+    if (focusedMarker && viewerRef.current) {
+      viewerRef.current.lookAt(focusedMarker.pitch, focusedMarker.yaw, 65, 1200)
+    }
+  }, [focusedMarker])
+
+  // Update hotspots when markers or filter changes
+  useEffect(() => {
+    if (viewerRef.current) {
+      syncHotspots(viewerRef.current)
+    }
+  }, [markers, selectedCategory])
+
+  // Initialize Pannellum viewer
   useEffect(() => {
     let active = true
     let blobUrlToRevoke: string | null = null
@@ -108,7 +204,6 @@ export default function PanoramaViewer({
       return
     }
 
-    // Keep razor-sharp Retina resolution (DPR 2.0)
     const targetDpr = Math.min(window.devicePixelRatio || 1, 2.0)
     clampRetinaDpr(targetDpr)
 
@@ -125,12 +220,6 @@ export default function PanoramaViewer({
         blobUrlToRevoke = panoramaBlobUrl
       }
 
-      // FIX FOR MOBILE LAG & STUCK BUG:
-      // Pannellum's 2015 "IE/Edge" PointerEvent handler leaves ghost coordinates in an internal array
-      // whenever a finger is lifted during pinch-to-zoom. When the user continues with 1 finger,
-      // it keeps calculating pinch math against the phantom finger, locking up the view.
-      // By temporarily masking PointerEvent during viewer creation on touch devices, Pannellum
-      // binds native touchstart/touchmove/touchend which correctly tracks physical fingers.
       const isTouchDevice =
         typeof window !== 'undefined' &&
         ('ontouchstart' in window ||
@@ -164,7 +253,7 @@ export default function PanoramaViewer({
         }
       }
 
-      // Enforce razor-sharp Retina DPR on canvas resizing
+      // Enforce razor-sharp Retina DPR
       try {
         const viewerAny = viewer as unknown as {
           getRenderer?: () => {
@@ -195,10 +284,10 @@ export default function PanoramaViewer({
           renderer.resize()
         }
       } catch {
-        // Ignore if Pannellum internals change
+        // ignore
       }
 
-      // Seamless touch transition: when lifting 1 finger after a pinch, smoothly re-anchor single-finger drag
+      // Handle touch transition
       const dragFix = container.querySelector('.pnlm-dragfix') as HTMLElement | null
       const handleTouchEnd = (e: TouchEvent) => {
         if (e.touches.length === 1 && dragFix) {
@@ -216,7 +305,24 @@ export default function PanoramaViewer({
 
       dragFix?.addEventListener('touchend', handleTouchEnd, { passive: true })
 
-      viewer.on('load', () => onReadyRef.current?.())
+      // Handle clicking in "Marking Mode" to drop new pins
+      const handleViewerClick = (e: MouseEvent) => {
+        if (!isMarkingModeRef.current || !viewerRef.current) return
+        if ((e.target as HTMLElement).closest('.campus-hotspot-pin, .pnlm-hotspot, button')) return
+
+        const coords = viewerRef.current.mouseEventToCoords(e)
+        if (coords && coords.length === 2) {
+          onPanoramaClickToMarkRef.current?.({ pitch: coords[0], yaw: coords[1] })
+        }
+      }
+
+      container.addEventListener('click', handleViewerClick)
+
+      viewer.on('load', () => {
+        if (viewer) syncHotspots(viewer)
+        onReadyRef.current?.()
+      })
+
       viewerRef.current = viewer
     })
 
@@ -230,7 +336,12 @@ export default function PanoramaViewer({
         URL.revokeObjectURL(blobUrlToRevoke)
       }
     }
-  }, [preview, standard, highRes, fallback])
+  }, [preview, standard, fallback])
 
-  return <div ref={containerRef} className={className} />
+  return (
+    <div
+      ref={containerRef}
+      className={`${className || ''} ${isMarkingMode ? 'panorama-viewer--marking' : ''}`}
+    />
+  )
 }

@@ -12,7 +12,7 @@ export type BuildingCategory =
   | string
 
 export interface CampusStage {
-  stageNumber: number
+  stageNumber?: number | string // Optional: number (1, 2) or text (e.g. "Main") or omit for unnumbered stages
   name: string
   floor?: string // e.g. "Ground Floor", "1st Floor", "3rd Floor", etc.
 }

@@ -149,7 +149,14 @@ function App() {
       prev.map((b) => {
         if (b.id !== buildingId) return b
         const existing = b.stages || []
-        const updated = [...existing, stage].sort((a, b) => a.stageNumber - b.stageNumber)
+        const updated = [...existing, stage].sort((a, b) => {
+          const numA = typeof a.stageNumber === 'number' ? a.stageNumber : parseInt(String(a.stageNumber || ''), 10)
+          const numB = typeof b.stageNumber === 'number' ? b.stageNumber : parseInt(String(b.stageNumber || ''), 10)
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB
+          if (!isNaN(numA)) return -1
+          if (!isNaN(numB)) return 1
+          return a.name.localeCompare(b.name)
+        })
         return { ...b, stages: updated }
       })
     )

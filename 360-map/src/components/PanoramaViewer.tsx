@@ -167,7 +167,18 @@ export default forwardRef<PanoramaViewerHandle, PanoramaViewerProps>(function Pa
       try {
         const catDetails = getCategoryDetails(m.category)
         const stageCount = m.stages?.length || 0
-        const stageNums = m.stages?.map((s) => s.stageNumber).join(', ')
+        const numberedStages = m.stages?.filter((s) => s.stageNumber) || []
+        const hasNumberedStages = numberedStages.length > 0
+        const stageNums = numberedStages.map((s) => s.stageNumber).join(', ')
+
+        let stageLabel = ''
+        if (stageCount > 0) {
+          if (hasNumberedStages) {
+            stageLabel = `Stage${numberedStages.length > 1 ? 's' : ''} ${stageNums}`
+          } else {
+            stageLabel = m.stages.map((s) => s.name).join(', ')
+          }
+        }
 
         viewer.addHotSpot({
           id: m.id,
@@ -180,9 +191,7 @@ export default forwardRef<PanoramaViewerHandle, PanoramaViewerProps>(function Pa
             const icon = catDetails.icon
             const label = m.name
             const stageTag =
-              stageCount > 0
-                ? `<span class="pin-stage-tag">Stage${stageCount > 1 ? 's' : ''} ${stageNums}</span>`
-                : ''
+              stageLabel ? `<span class="pin-stage-tag">${stageLabel}</span>` : ''
 
             div.innerHTML = `
               <div class="pin-badge">

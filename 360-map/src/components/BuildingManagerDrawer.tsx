@@ -81,10 +81,11 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
     let maxNum = 0
     buildings.forEach((b) => {
       b.stages?.forEach((s) => {
-        if (s.stageNumber > maxNum) maxNum = s.stageNumber
+        const n = typeof s.stageNumber === 'number' ? s.stageNumber : parseInt(String(s.stageNumber), 10)
+        if (!isNaN(n) && n > maxNum) maxNum = n
       })
     })
-    return maxNum + 1
+    return maxNum > 0 ? maxNum + 1 : 1
   }
 
   const handleOpenAddStage = (buildingId: string) => {
@@ -96,16 +97,29 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
   }
 
   const handleSaveStage = (buildingId: string) => {
-    const num = parseInt(newStageNum.trim(), 10)
-    if (isNaN(num) || num <= 0) {
-      alert('Please enter a valid stage number (e.g. 1, 2, 3)')
+    const rawNum = newStageNum.trim()
+    const name = newStageName.trim()
+    const floor = newStageFloor.trim() || undefined
+
+    if (!rawNum && !name) {
+      alert('Please enter a stage name (e.g. Main Stage) or stage number')
       return
     }
 
-    const name = newStageName.trim() || `Stage ${num}`
-    const floor = newStageFloor.trim() || undefined
+    // Parse number if it's numeric, or keep as string (e.g. "Main"), or undefined if empty
+    let stageNumber: number | string | undefined = undefined
+    if (rawNum) {
+      const parsed = parseInt(rawNum, 10)
+      if (!isNaN(parsed) && String(parsed) === rawNum) {
+        stageNumber = parsed
+      } else {
+        stageNumber = rawNum
+      }
+    }
 
-    onAddStage(buildingId, { stageNumber: num, name, floor })
+    const finalName = name || (stageNumber ? `Stage ${stageNumber}` : 'Stage')
+
+    onAddStage(buildingId, { stageNumber, name: finalName, floor })
     setAddingStageForBuildingId(null)
     setNewStageNum('')
     setNewStageName('')
@@ -520,19 +534,18 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
                         </div>
                         <div className="bld-stage-form-row">
                           <input
-                            type="number"
-                            min="1"
+                            type="text"
                             value={newStageNum}
                             onChange={(e) => setNewStageNum(e.target.value)}
-                            placeholder="Stage #"
+                            placeholder="Stage # / Text (e.g. 1, Main, or leave blank)"
                             className="bld-stage-num-input"
-                            title="Stage Number"
+                            title="Stage Number or Label (e.g. 1, 2, Main - optional if you provide stage name)"
                           />
                           <input
                             type="text"
                             value={newStageName}
                             onChange={(e) => setNewStageName(e.target.value)}
-                            placeholder="Stage Name (e.g. Auditorium Hall, Classical Stage)"
+                            placeholder="Stage Name (e.g. Main Stage, Classical Dance Stage)"
                             className="bld-stage-name-input"
                           />
                         </div>
@@ -543,7 +556,7 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
                             type="text"
                             value={newStageFloor}
                             onChange={(e) => setNewStageFloor(e.target.value)}
-                            placeholder="e.g. 3rd Floor (Auditorium), 2nd Floor (Classroom XI-E)"
+                            placeholder="e.g. Ground Floor, 3rd Floor (Auditorium)"
                             className="bld-stage-floor-input"
                           />
                         </div>
@@ -578,9 +591,19 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
                           stages.map((stg, stgIdx) => (
                             <div key={stgIdx} className="bld-stage-item">
                               <div className="bld-stage-item-top">
-                                <span className="bld-stage-badge">
-                                  #{stg.stageNumber}
-                                </span>
+                                <input
+                                  type="text"
+                                  value={stg.stageNumber ?? ''}
+                                  onChange={(e) =>
+                                    onUpdateStage(bld.id, stgIdx, {
+                                      ...stg,
+                                      stageNumber: e.target.value.trim() || undefined,
+                                    })
+                                  }
+                                  className="bld-stage-item-num-input"
+                                  placeholder="#"
+                                  title="Stage number or label (e.g. 1, Main, leave blank if none)"
+                                />
                                 <input
                                   type="text"
                                   value={stg.name}
@@ -633,3 +656,4 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
     </aside>
   )
 }
+

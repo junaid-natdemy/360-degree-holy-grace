@@ -47,7 +47,13 @@ export const MarkerDetailModal: React.FC<MarkerDetailModalProps> = ({
                 {stages.map((stg, i) => (
                   <div key={i} className="marker-stage-card">
                     <div className="marker-stage-top-row">
-                      <span className="marker-stage-num">Stage {stg.stageNumber}</span>
+                      {stg.stageNumber ? (
+                        <span className="marker-stage-num">
+                          {/^\d+$/.test(String(stg.stageNumber))
+                            ? `Stage ${stg.stageNumber}`
+                            : String(stg.stageNumber)}
+                        </span>
+                      ) : null}
                       <span className="marker-stage-name">{stg.name}</span>
                     </div>
                     {stg.floor && (

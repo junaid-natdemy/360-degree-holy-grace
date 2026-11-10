@@ -1,17 +1,21 @@
 import React, { useState, useMemo } from 'react'
-import type { CampusMarker, MarkerCategory } from '../types/marker'
+import {
+  type CampusBuilding,
+  type BuildingCategory,
+  CATEGORY_CONFIG,
+  getCategoryDetails,
+} from '../types/marker'
 
 interface MarkerFilterBarProps {
-  markers: CampusMarker[]
-  selectedCategory: MarkerCategory | 'all'
-  onSelectCategory: (cat: MarkerCategory | 'all') => void
-  onSelectMarker: (marker: CampusMarker) => void
-  isMarkingMode: boolean
-  onToggleMarkingMode: () => void
-  onAddMarkerDirect: () => void
+  markers: CampusBuilding[]
+  selectedCategory: BuildingCategory | 'all'
+  onSelectCategory: (cat: BuildingCategory | 'all') => void
+  onSelectMarker: (marker: CampusBuilding) => void
+  isDrawerOpen: boolean
+  onToggleDrawer: () => void
+  onOpenNewBuilding: () => void
   onExportMarkers: () => void
   onImportMarkers: () => void
-  onClearAllMarkers: () => void
 }
 
 export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
@@ -19,12 +23,11 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
   selectedCategory,
   onSelectCategory,
   onSelectMarker,
-  isMarkingMode,
-  onToggleMarkingMode,
-  onAddMarkerDirect,
+  isDrawerOpen,
+  onToggleDrawer,
+  onOpenNewBuilding,
   onExportMarkers,
   onImportMarkers,
-  onClearAllMarkers,
 }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [isOpenList, setIsOpenList] = useState(false)
@@ -41,15 +44,15 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
       const query = searchQuery.toLowerCase()
       const matchesName = m.name.toLowerCase().includes(query)
       const matchesDesc = m.description?.toLowerCase().includes(query)
-      const matchesFloor = m.floorInfo?.toLowerCase().includes(query)
       const matchesStages = m.stages?.some(
         (s) =>
-          `stage ${s}`.includes(query) ||
-          String(s) === query.trim() ||
-          String(s).padStart(2, '0') === query.trim()
+          s.name.toLowerCase().includes(query) ||
+          String(s.stageNumber) === query.trim() ||
+          `stage ${s.stageNumber}`.includes(query) ||
+          s.floor?.toLowerCase().includes(query)
       )
 
-      return matchesName || matchesDesc || matchesFloor || matchesStages
+      return matchesName || matchesDesc || matchesStages
     })
   }, [markers, selectedCategory, searchQuery])
 
@@ -61,7 +64,7 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
           <span className="search-icon">🔍</span>
           <input
             type="text"
-            placeholder="Search building, stage (e.g. Stage 04), parking..."
+            placeholder="Search building, stage (e.g. Stage 4), floor..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value)
@@ -82,26 +85,26 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
           )}
         </div>
 
-        {/* Action Buttons: Add Marker, Marking Mode, Export, Import, Clear */}
+        {/* Action Buttons: Add Building & Manage Drawer */}
         <div className="campus-toolbar-actions">
           <button
             className="btn-action btn-action--primary-highlight"
-            onClick={onAddMarkerDirect}
-            title="Open modal to add a new building, stage, or area"
+            onClick={onOpenNewBuilding}
+            title="Add a new building and place on 360 map"
           >
-            ➕ Add Marker
+            ➕ New Building
           </button>
           <button
-            className={`btn-action ${isMarkingMode ? 'btn-action--active' : ''}`}
-            onClick={onToggleMarkingMode}
-            title={isMarkingMode ? 'Click on panorama to place a marker' : 'Turn on Click-to-Mark Tool'}
+            className={`btn-action ${isDrawerOpen ? 'btn-action--active' : ''}`}
+            onClick={onToggleDrawer}
+            title="Open Developer Building & Stage Manager"
           >
-            {isMarkingMode ? '🎯 Marking: ON' : '🎯 Click to Mark'}
+            🛠️ Buildings ({markers.length})
           </button>
           <button
             className="btn-action btn-action--secondary"
             onClick={onExportMarkers}
-            title="Export custom markers as JSON"
+            title="Export all buildings and stages as JSON"
           >
             📋 Export
           </button>
@@ -112,22 +115,15 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
           >
             📥 Import
           </button>
-          {markers.length > 0 && (
-            <button
-              className="btn-action btn-action--danger-subtle"
-              onClick={onClearAllMarkers}
-              title="Clear all markers"
-            >
-              🗑️ Clear
-            </button>
-          )}
         </div>
       </div>
 
       {/* Empty State Banner if no markers exist */}
       {markers.length === 0 && (
         <div className="empty-markers-banner">
-          <span>📍 <strong>No markers added yet:</strong> Click <strong>"➕ Add Marker"</strong> or <strong>"🎯 Click to Mark"</strong> to start placing your buildings, stages, and areas.</span>
+          <span>
+            📍 <strong>No buildings added yet:</strong> Click <strong>"➕ New Building"</strong> to type a name and drop a marker on the 360° map!
+          </span>
         </div>
       )}
 
@@ -139,40 +135,20 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
         >
           All Locations ({markers.length})
         </button>
-        <button
-          className={`category-pill category-pill--building-stages ${
-            selectedCategory === 'building_with_stages' ? 'category-pill--active' : ''
-          }`}
-          onClick={() => onSelectCategory('building_with_stages')}
-        >
-          🏢 Buildings with Stages (
-          {markers.filter((m) => m.category === 'building_with_stages').length})
-        </button>
-        <button
-          className={`category-pill category-pill--building ${
-            selectedCategory === 'building' ? 'category-pill--active' : ''
-          }`}
-          onClick={() => onSelectCategory('building')}
-        >
-          🏛️ Buildings ({markers.filter((m) => m.category === 'building').length})
-        </button>
-        <button
-          className={`category-pill category-pill--area-stages ${
-            selectedCategory === 'area_with_stages' ? 'category-pill--active' : ''
-          }`}
-          onClick={() => onSelectCategory('area_with_stages')}
-        >
-          🎪 Areas with Stages (
-          {markers.filter((m) => m.category === 'area_with_stages').length})
-        </button>
-        <button
-          className={`category-pill category-pill--area ${
-            selectedCategory === 'area' ? 'category-pill--active' : ''
-          }`}
-          onClick={() => onSelectCategory('area')}
-        >
-          📍 Areas & Parking ({markers.filter((m) => m.category === 'area').length})
-        </button>
+
+        {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
+          const count = markers.filter((m) => m.category === key).length
+          if (count === 0 && selectedCategory !== key) return null
+          return (
+            <button
+              key={key}
+              className={`category-pill ${selectedCategory === key ? 'category-pill--active' : ''}`}
+              onClick={() => onSelectCategory(key)}
+            >
+              {cfg.icon} {cfg.label} ({count})
+            </button>
+          )
+        })}
       </div>
 
       {/* Search Autocomplete / Quick Dropdown */}
@@ -181,26 +157,40 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
           {filteredMarkers.length === 0 ? (
             <div className="search-no-results">No locations found for "{searchQuery}"</div>
           ) : (
-            filteredMarkers.map((m) => (
-              <div
-                key={m.id}
-                className="search-result-item"
-                onClick={() => {
-                  onSelectMarker(m)
-                  setIsOpenList(false)
-                }}
-              >
-                <div className="search-result-info">
-                  <span className="search-result-name">{m.name}</span>
-                  {m.badgeLabel && <span className="search-result-badge">{m.badgeLabel}</span>}
+            filteredMarkers.map((m) => {
+              const catDetails = getCategoryDetails(m.category)
+              const stagesCount = m.stages?.length || 0
+              const stagesText = m.stages?.map((s) => `#${s.stageNumber}`).join(', ')
+              return (
+                <div
+                  key={m.id}
+                  className="search-result-item"
+                  onClick={() => {
+                    onSelectMarker(m)
+                    setIsOpenList(false)
+                  }}
+                >
+                  <div className="search-result-info">
+                    <span className="search-result-name">
+                      {catDetails.icon} {m.name}
+                    </span>
+                    {stagesCount > 0 && (
+                      <span className="search-result-badge">
+                        Stages: {stagesText}
+                      </span>
+                    )}
+                  </div>
+                  {stagesCount > 0 && (
+                    <small className="search-result-floor">
+                      {m.stages.map((s) => s.floor ? `Stage ${s.stageNumber}: ${s.floor}` : '').filter(Boolean).join(' · ')}
+                    </small>
+                  )}
                 </div>
-                {m.floorInfo && <small className="search-result-floor">{m.floorInfo}</small>}
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       )}
     </div>
   )
 }
-

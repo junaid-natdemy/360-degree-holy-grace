@@ -2,10 +2,15 @@ import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import 'pannellum/build/pannellum.css'
 import 'pannellum/build/pannellum.js'
 import type { PannellumViewer } from '../types/pannellum'
-import type { CampusMarker, MarkerCategory } from '../types/marker'
+import {
+  type CampusBuilding,
+  type BuildingCategory,
+  getCategoryDetails,
+} from '../types/marker'
 
 export interface PanoramaViewerHandle {
   getCurrentCoords: () => { pitch: number; yaw: number } | null
+  lookAt: (pitch: number, yaw: number, hfov?: number, animated?: number | boolean) => void
 }
 
 export interface PanoramaViewerProps {
@@ -18,15 +23,15 @@ export interface PanoramaViewerProps {
   /** JPEG fallback in case WebP fails on a restricted network or browser. */
   fallback?: string
   /** Campus markers to display */
-  markers?: CampusMarker[]
+  markers?: CampusBuilding[]
   /** Active category filter */
-  selectedCategory?: MarkerCategory | 'all'
+  selectedCategory?: BuildingCategory | 'all'
   /** Marker to focus / center on */
-  focusedMarker?: CampusMarker | null
+  focusedMarker?: CampusBuilding | null
   /** Whether user is in "Marking Mode" to place new pins */
   isMarkingMode?: boolean
   /** Callback when user clicks a marker pin */
-  onMarkerClick?: (marker: CampusMarker) => void
+  onMarkerClick?: (marker: CampusBuilding) => void
   /** Callback when user clicks panorama in marking mode to drop a pin */
   onPanoramaClickToMark?: (coords: { pitch: number; yaw: number }) => void
   /** Called once the chosen texture has finished loading. */
@@ -34,18 +39,6 @@ export interface PanoramaViewerProps {
   className?: string
 }
 
-function getCategoryIcon(cat: MarkerCategory): string {
-  switch (cat) {
-    case 'building_with_stages':
-      return '🏢'
-    case 'building':
-      return '🏛️'
-    case 'area_with_stages':
-      return '🎪'
-    case 'area':
-      return '📍'
-  }
-}
 
 /**
  * Ensures canvas renders at true Apple Retina / High-DPI sharpness (DPR 2.0)
@@ -142,6 +135,9 @@ export default forwardRef<PanoramaViewerHandle, PanoramaViewerProps>(function Pa
         yaw: parseFloat(viewerRef.current.getYaw().toFixed(2)),
       }
     },
+    lookAt: (pitch: number, yaw: number, hfov = 75, animated: number | boolean = 1000) => {
+      viewerRef.current?.lookAt(pitch, yaw, hfov, animated)
+    },
   }))
 
   useEffect(() => {
@@ -169,6 +165,10 @@ export default forwardRef<PanoramaViewerHandle, PanoramaViewerProps>(function Pa
     // Add filtered hotSpots
     activeMarkers.forEach((m) => {
       try {
+        const catDetails = getCategoryDetails(m.category)
+        const stageCount = m.stages?.length || 0
+        const stageNums = m.stages?.map((s) => s.stageNumber).join(', ')
+
         viewer.addHotSpot({
           id: m.id,
           pitch: m.pitch,
@@ -176,13 +176,21 @@ export default forwardRef<PanoramaViewerHandle, PanoramaViewerProps>(function Pa
           type: 'custom',
           cssClass: `campus-hotspot campus-hotspot--${m.category}`,
           createTooltipFunc: (div: HTMLElement) => {
-            div.className = `campus-hotspot-pin campus-hotspot-pin--${m.category}`
-            const icon = getCategoryIcon(m.category)
-            const label = m.badgeLabel || m.name
+            div.className = `campus-hotspot-pin ${catDetails.badgeClass}`
+            const icon = catDetails.icon
+            const label = m.name
+            const stageTag =
+              stageCount > 0
+                ? `<span class="pin-stage-tag">Stage${stageCount > 1 ? 's' : ''} ${stageNums}</span>`
+                : ''
+
             div.innerHTML = `
               <div class="pin-badge">
                 <span class="pin-icon">${icon}</span>
-                <span class="pin-title">${label}</span>
+                <div class="pin-info">
+                  <span class="pin-title">${label}</span>
+                  ${stageTag}
+                </div>
               </div>
             `
           },

@@ -3,21 +3,26 @@ import PanoramaViewer, { type PanoramaViewerHandle } from './components/Panorama
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { MarkerFilterBar } from './components/MarkerFilterBar'
 import { MarkerDetailModal } from './components/MarkerDetailModal'
-import { MarkerEditorModal } from './components/MarkerEditorModal'
+import { BuildingManagerDrawer } from './components/BuildingManagerDrawer'
 import { INITIAL_CAMPUS_MARKERS } from './config/initialMarkers'
-import type { CampusMarker, MarkerCategory } from './types/marker'
+import type {
+  CampusBuilding,
+  CampusStage,
+  BuildingCategory,
+} from './types/marker'
 import './App.css'
 
 const PANORAMA_PREVIEW = '/panoramas/panorama-preview.webp'
 const PANORAMA_STANDARD = '/panoramas/panorama.webp'
 const PANORAMA_FALLBACK = '/panoramas/pano-4096.jpg'
-const STORAGE_KEY = 'holy_grace_360_user_markers_v1'
+const STORAGE_KEY = 'holy_grace_360_buildings_v2'
 
 function App() {
   const [imageReady, setImageReady] = useState(false)
   const viewerHandleRef = useRef<PanoramaViewerHandle>(null)
 
-  const [markers, setMarkers] = useState<CampusMarker[]>(() => {
+  // Buildings & Stages state
+  const [buildings, setBuildings] = useState<CampusBuilding[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
@@ -32,103 +37,191 @@ function App() {
     return INITIAL_CAMPUS_MARKERS
   })
 
-  const [selectedCategory, setSelectedCategory] = useState<MarkerCategory | 'all'>('all')
-  const [activeMarker, setActiveMarker] = useState<CampusMarker | null>(null)
-  const [focusedMarker, setFocusedMarker] = useState<CampusMarker | null>(null)
+  // Category filter for the panorama pins & search
+  const [selectedCategory, setSelectedCategory] = useState<BuildingCategory | 'all'>('all')
+  const [activeMarker, setActiveMarker] = useState<CampusBuilding | null>(null)
+  const [focusedMarker, setFocusedMarker] = useState<CampusBuilding | null>(null)
 
-  // Marking & Editing Mode
-  const [isMarkingMode, setIsMarkingMode] = useState(false)
-  const [isEditorOpen, setIsEditorOpen] = useState(false)
-  const [editingMarker, setEditingMarker] = useState<Partial<CampusMarker> | null>(null)
+  // Developer Building Manager Drawer
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null)
 
-  // Persist custom markers
+  // Workflow states: Pending Placement & Relocation (HOLLY-GRACE-MAP Pattern)
+  const [pendingAddBuildingName, setPendingAddBuildingName] = useState<string | null>(null)
+  const [targetMoveBuildingId, setTargetMoveBuildingId] = useState<string | null>(null)
+
+  // Persist buildings & stages
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(markers))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(buildings))
     } catch {
       // ignore
     }
-  }, [markers])
+  }, [buildings])
 
-  const handleSelectMarker = (marker: CampusMarker) => {
+  const handleSelectMarker = (marker: CampusBuilding) => {
     setFocusedMarker(marker)
     setActiveMarker(marker)
   }
 
-  const handlePanoramaClickToMark = (coords: { pitch: number; yaw: number }) => {
-    setEditingMarker({
-      pitch: parseFloat(coords.pitch.toFixed(2)),
-      yaw: parseFloat(coords.yaw.toFixed(2)),
-      category: 'building_with_stages',
-    })
-    setIsEditorOpen(true)
-  }
+  // Handle clicks on 360 viewer when in "Place on Map" or "Relocate" mode
+  const handlePanoramaClick = (coords: { pitch: number; yaw: number }) => {
+    const pitch = parseFloat(coords.pitch.toFixed(2))
+    const yaw = parseFloat(coords.yaw.toFixed(2))
 
-  const handleAddMarkerDirect = () => {
-    const coords = viewerHandleRef.current?.getCurrentCoords() || { pitch: 0, yaw: 0 }
-    setEditingMarker({
-      pitch: coords.pitch,
-      yaw: coords.yaw,
-      category: 'building_with_stages',
-    })
-    setIsEditorOpen(true)
-  }
-
-  const handleSaveMarker = (saved: CampusMarker) => {
-    setMarkers((prev) => {
-      const exists = prev.some((m) => m.id === saved.id)
-      if (exists) {
-        return prev.map((m) => (m.id === saved.id ? saved : m))
+    // 1. Placing a newly added building
+    if (pendingAddBuildingName !== null) {
+      const newBuilding: CampusBuilding = {
+        id: `bld-${Date.now()}`,
+        name: pendingAddBuildingName.trim(),
+        category: 'academic',
+        pitch,
+        yaw,
+        stages: [],
       }
-      return [...prev, saved]
-    })
-    setFocusedMarker(saved)
-    setActiveMarker(saved)
-  }
+      setBuildings((prev) => [...prev, newBuilding])
+      setPendingAddBuildingName(null)
+      setSelectedBuildingId(newBuilding.id)
+      setIsDrawerOpen(true) // reopen drawer so user can immediately add stages
+      return
+    }
 
-  const handleDeleteMarker = (markerId: string) => {
-    setMarkers((prev) => prev.filter((m) => m.id !== markerId))
-    if (activeMarker?.id === markerId) {
-      setActiveMarker(null)
+    // 2. Relocating an existing building
+    if (targetMoveBuildingId !== null) {
+      setBuildings((prev) =>
+        prev.map((b) => (b.id === targetMoveBuildingId ? { ...b, pitch, yaw } : b))
+      )
+      setTargetMoveBuildingId(null)
+      setIsDrawerOpen(true)
     }
   }
 
-  const handleExportMarkers = () => {
-    const jsonStr = JSON.stringify(markers, null, 2)
+  // Building Actions
+  const handleStartAddBuilding = (name: string) => {
+    setPendingAddBuildingName(name)
+    setTargetMoveBuildingId(null)
+    setIsDrawerOpen(false) // reveal the 360 panorama for placement
+  }
+
+  const handleCancelAddBuilding = () => {
+    setPendingAddBuildingName(null)
+    setIsDrawerOpen(true)
+  }
+
+  const handleStartMoveBuilding = (id: string) => {
+    setTargetMoveBuildingId(id)
+    setPendingAddBuildingName(null)
+    setIsDrawerOpen(false) // reveal the 360 panorama for relocation
+  }
+
+  const handleCancelMoveBuilding = () => {
+    setTargetMoveBuildingId(null)
+    setIsDrawerOpen(true)
+  }
+
+  const handleUpdateBuildingName = (id: string, name: string) => {
+    setBuildings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, name } : b))
+    )
+  }
+
+  const handleUpdateBuildingCategory = (id: string, category: BuildingCategory) => {
+    setBuildings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, category } : b))
+    )
+  }
+
+  const handleUpdateBuildingCoords = (id: string, coords: { pitch: number; yaw: number }) => {
+    setBuildings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, ...coords } : b))
+    )
+  }
+
+  const handleDeleteBuilding = (id: string) => {
+    setBuildings((prev) => prev.filter((b) => b.id !== id))
+    if (activeMarker?.id === id) setActiveMarker(null)
+    if (selectedBuildingId === id) setSelectedBuildingId(null)
+  }
+
+  // Stages & Floors Actions
+  const handleAddStage = (buildingId: string, stage: CampusStage) => {
+    setBuildings((prev) =>
+      prev.map((b) => {
+        if (b.id !== buildingId) return b
+        const existing = b.stages || []
+        const updated = [...existing, stage].sort((a, b) => a.stageNumber - b.stageNumber)
+        return { ...b, stages: updated }
+      })
+    )
+  }
+
+  const handleUpdateStage = (buildingId: string, stageIndex: number, stage: CampusStage) => {
+    setBuildings((prev) =>
+      prev.map((b) => {
+        if (b.id !== buildingId) return b
+        const updated = [...(b.stages || [])]
+        updated[stageIndex] = stage
+        return { ...b, stages: updated }
+      })
+    )
+  }
+
+  const handleDeleteStage = (buildingId: string, stageIndex: number) => {
+    setBuildings((prev) =>
+      prev.map((b) => {
+        if (b.id !== buildingId) return b
+        const updated = (b.stages || []).filter((_, i) => i !== stageIndex)
+        return { ...b, stages: updated }
+      })
+    )
+  }
+
+  const handleFocusBuilding = (bld: CampusBuilding) => {
+    setFocusedMarker(bld)
+    viewerHandleRef.current?.lookAt(bld.pitch, bld.yaw, 70, 1000)
+  }
+
+  // Export / Import
+  const handleExportJSON = () => {
+    const jsonStr = JSON.stringify(buildings, null, 2)
     navigator.clipboard?.writeText(jsonStr)
     const blob = new Blob([jsonStr], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'holy-grace-campus-markers.json'
+    a.download = 'holy-grace-campus-buildings.json'
     a.click()
     URL.revokeObjectURL(url)
-    alert('Campus markers exported to JSON and copied to your clipboard!')
+    alert(`Exported ${buildings.length} buildings & stages to JSON and copied to clipboard!`)
   }
 
-  const handleImportMarkers = () => {
-    const jsonStr = prompt('Paste your exported markers JSON here:')
+  const handleImportJSON = () => {
+    const jsonStr = prompt('Paste your exported buildings JSON here:')
     if (!jsonStr) return
     try {
       const parsed = JSON.parse(jsonStr)
       if (Array.isArray(parsed)) {
-        setMarkers(parsed)
-        alert(`Successfully imported ${parsed.length} markers!`)
+        setBuildings(parsed)
+        alert(`Successfully imported ${parsed.length} buildings!`)
       } else {
-        alert('Invalid JSON format: expected an array of markers.')
+        alert('Invalid JSON: expected an array of buildings.')
       }
     } catch {
       alert('Failed to parse JSON. Please check the format.')
     }
   }
 
-  const handleClearAllMarkers = () => {
-    if (confirm('Are you sure you want to clear all custom markers and start fresh?')) {
-      setMarkers([])
+  const handleClearAll = () => {
+    if (confirm('Are you sure you want to delete all buildings & stages and start fresh?')) {
+      setBuildings([])
       setActiveMarker(null)
-      setFocusedMarker(null)
+      setSelectedBuildingId(null)
+      setPendingAddBuildingName(null)
+      setTargetMoveBuildingId(null)
     }
   }
+
+  const isMarkingActive = pendingAddBuildingName !== null || targetMoveBuildingId !== null
 
   return (
     <main className="panorama-page">
@@ -138,72 +231,92 @@ function App() {
         preview={PANORAMA_PREVIEW}
         standard={PANORAMA_STANDARD}
         fallback={PANORAMA_FALLBACK}
-        markers={markers}
+        markers={buildings}
         selectedCategory={selectedCategory}
         focusedMarker={focusedMarker}
-        isMarkingMode={isMarkingMode}
+        isMarkingMode={isMarkingActive}
         onMarkerClick={handleSelectMarker}
-        onPanoramaClickToMark={handlePanoramaClickToMark}
+        onPanoramaClickToMark={handlePanoramaClick}
         onReady={() => setImageReady(true)}
       />
 
       {/* Top Filter and Search Bar */}
       <MarkerFilterBar
-        markers={markers}
+        markers={buildings}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         onSelectMarker={handleSelectMarker}
-        isMarkingMode={isMarkingMode}
-        onToggleMarkingMode={() => setIsMarkingMode((prev) => !prev)}
-        onAddMarkerDirect={handleAddMarkerDirect}
-        onExportMarkers={handleExportMarkers}
-        onImportMarkers={handleImportMarkers}
-        onClearAllMarkers={handleClearAllMarkers}
+        isDrawerOpen={isDrawerOpen}
+        onToggleDrawer={() => setIsDrawerOpen((prev) => !prev)}
+        onOpenNewBuilding={() => {
+          setIsDrawerOpen(true)
+        }}
+        onExportMarkers={handleExportJSON}
+        onImportMarkers={handleImportJSON}
       />
 
-      {/* Marking Mode Banner when active */}
-      {isMarkingMode && (
-        <div className="marking-mode-banner">
-          <span>🎯 <strong>Marking Mode:</strong> Click anywhere on the campus to drop a pin.</span>
-          <div className="marking-mode-banner-actions">
-            <button
-              className="btn-mark-center"
-              onClick={() => {
-                const coords = viewerHandleRef.current?.getCurrentCoords() || { pitch: 0, yaw: 0 }
-                handlePanoramaClickToMark(coords)
-              }}
-            >
-              📍 Add at Center View
-            </button>
-            <button className="btn-mark-done" onClick={() => setIsMarkingMode(false)}>
-              Done
-            </button>
+      {/* Floating Pending Placement Banner (HOLLY-GRACE-MAP Pattern) */}
+      {pendingAddBuildingName && (
+        <div className="bld-floating-placement-banner animate-pulse">
+          <div className="bld-placement-text">
+            🎯 Click anywhere on the 360° campus to place: <strong>"{pendingAddBuildingName}"</strong>
           </div>
+          <button type="button" onClick={handleCancelAddBuilding} className="btn-placement-cancel">
+            Cancel
+          </button>
         </div>
       )}
 
-      {/* Detail Modal for Clicked Building / Area */}
+      {/* Floating Pending Relocation Banner */}
+      {targetMoveBuildingId && (
+        <div className="bld-floating-placement-banner bld-floating-placement-banner--relocate animate-pulse">
+          <div className="bld-placement-text">
+            📍 Click on the 360° campus to relocate:{' '}
+            <strong>
+              "{buildings.find((b) => b.id === targetMoveBuildingId)?.name || 'Building'}"
+            </strong>
+          </div>
+          <button type="button" onClick={handleCancelMoveBuilding} className="btn-placement-cancel">
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Detail Modal when user clicks any hotspot pin */}
       <MarkerDetailModal
         marker={activeMarker}
         onClose={() => setActiveMarker(null)}
-        onFocus={(m) => setFocusedMarker(m)}
+        onFocus={(m) => handleFocusBuilding(m)}
         onEdit={(m) => {
           setActiveMarker(null)
-          setEditingMarker(m)
-          setIsEditorOpen(true)
+          setSelectedBuildingId(m.id)
+          setIsDrawerOpen(true)
         }}
       />
 
-      {/* Add / Edit Marker Modal */}
-      <MarkerEditorModal
-        marker={editingMarker}
-        isOpen={isEditorOpen}
-        onClose={() => {
-          setIsEditorOpen(false)
-          setEditingMarker(null)
-        }}
-        onSave={handleSaveMarker}
-        onDelete={handleDeleteMarker}
+      {/* Developer Building & Stage Manager Drawer */}
+      <BuildingManagerDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        buildings={buildings}
+        pendingAddBuildingName={pendingAddBuildingName}
+        targetMoveBuildingId={targetMoveBuildingId}
+        selectedBuildingId={selectedBuildingId}
+        onStartAddBuilding={handleStartAddBuilding}
+        onCancelAddBuilding={handleCancelAddBuilding}
+        onStartMoveBuilding={handleStartMoveBuilding}
+        onCancelMoveBuilding={handleCancelMoveBuilding}
+        onUpdateBuildingName={handleUpdateBuildingName}
+        onUpdateBuildingCategory={handleUpdateBuildingCategory}
+        onUpdateBuildingCoords={handleUpdateBuildingCoords}
+        onDeleteBuilding={handleDeleteBuilding}
+        onAddStage={handleAddStage}
+        onUpdateStage={handleUpdateStage}
+        onDeleteStage={handleDeleteStage}
+        onFocusBuilding={handleFocusBuilding}
+        onExportJSON={handleExportJSON}
+        onImportJSON={handleImportJSON}
+        onClearAll={handleClearAll}
       />
 
       <p className="panorama-hint">

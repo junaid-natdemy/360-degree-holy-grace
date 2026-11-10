@@ -1,11 +1,11 @@
 import React from 'react'
-import type { CampusMarker } from '../types/marker'
+import { type CampusBuilding, getCategoryDetails } from '../types/marker'
 
 interface MarkerDetailModalProps {
-  marker: CampusMarker | null
+  marker: CampusBuilding | null
   onClose: () => void
-  onEdit?: (marker: CampusMarker) => void
-  onFocus?: (marker: CampusMarker) => void
+  onEdit?: (marker: CampusBuilding) => void
+  onFocus?: (marker: CampusBuilding) => void
 }
 
 export const MarkerDetailModal: React.FC<MarkerDetailModalProps> = ({
@@ -16,55 +16,46 @@ export const MarkerDetailModal: React.FC<MarkerDetailModalProps> = ({
 }) => {
   if (!marker) return null
 
-  const getCategoryBadge = () => {
-    switch (marker.category) {
-      case 'building_with_stages':
-        return { label: '🏢 Building with Stages', className: 'marker-badge--building-stages' }
-      case 'building':
-        return { label: '🏛️ Campus Building', className: 'marker-badge--building' }
-      case 'area_with_stages':
-        return { label: '🎪 Outdoor Area with Stages', className: 'marker-badge--area-stages' }
-      case 'area':
-        return { label: '📍 Campus Area & Facilities', className: 'marker-badge--area' }
-    }
-  }
-
-  const badge = getCategoryBadge()
+  const catDetails = getCategoryDetails(marker.category)
+  const stages = marker.stages || []
 
   return (
     <div className="marker-modal-backdrop" onClick={onClose}>
       <div className="marker-modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="marker-modal-header">
           <div className="marker-modal-title-row">
-            <span className={`marker-category-pill ${badge.className}`}>{badge.label}</span>
+            <span className={`marker-category-pill ${catDetails.badgeClass}`}>
+              {catDetails.icon} {catDetails.label}
+            </span>
             <button className="marker-modal-close" onClick={onClose} aria-label="Close">
               ✕
             </button>
           </div>
           <h2 className="marker-modal-title">{marker.name}</h2>
-          {marker.badgeLabel && (
-            <span className="marker-modal-subbadge">{marker.badgeLabel}</span>
+          {stages.length > 0 && (
+            <span className="marker-modal-subbadge">
+              Hosts {stages.length} {stages.length === 1 ? 'Competition Stage' : 'Competition Stages'}
+            </span>
           )}
         </div>
 
         <div className="marker-modal-body">
-          {marker.stages && marker.stages.length > 0 && (
+          {stages.length > 0 && (
             <div className="marker-modal-section">
-              <h4 className="marker-modal-section-title">Hosted Stages:</h4>
+              <h4 className="marker-modal-section-title">Competition Stages:</h4>
               <div className="marker-stages-grid">
-                {marker.stages.map((stg) => (
-                  <div key={stg} className="marker-stage-card">
-                    <span className="marker-stage-num">Stage {String(stg).padStart(2, '0')}</span>
+                {stages.map((stg, i) => (
+                  <div key={i} className="marker-stage-card">
+                    <div className="marker-stage-top-row">
+                      <span className="marker-stage-num">Stage {stg.stageNumber}</span>
+                      <span className="marker-stage-name">{stg.name}</span>
+                    </div>
+                    {stg.floor && (
+                      <span className="marker-stage-floor-badge">📍 {stg.floor}</span>
+                    )}
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {marker.floorInfo && (
-            <div className="marker-modal-section">
-              <h4 className="marker-modal-section-title">Floor & Location Details:</h4>
-              <p className="marker-modal-text pre-wrap">{marker.floorInfo}</p>
             </div>
           )}
 
@@ -88,7 +79,7 @@ export const MarkerDetailModal: React.FC<MarkerDetailModalProps> = ({
           )}
           {onEdit && (
             <button className="btn-secondary" onClick={() => onEdit(marker)}>
-              ✏️ Edit Marker
+              ✏️ Edit in Manager
             </button>
           )}
         </div>
@@ -96,4 +87,3 @@ export const MarkerDetailModal: React.FC<MarkerDetailModalProps> = ({
     </div>
   )
 }
-

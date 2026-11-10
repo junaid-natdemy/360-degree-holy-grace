@@ -20,6 +20,7 @@ export interface BuildingManagerDrawerProps {
   onCancelMoveBuilding: () => void
   onUpdateBuildingName: (id: string, name: string) => void
   onUpdateBuildingCategory: (id: string, category: BuildingCategory) => void
+  onUpdateBuildingStageBadge?: (id: string, stageBadgeLabel: string) => void
   onUpdateBuildingCoords: (id: string, coords: { pitch: number; yaw: number }) => void
   onDeleteBuilding: (id: string) => void
   onAddStage: (buildingId: string, stage: CampusStage) => void
@@ -29,6 +30,7 @@ export interface BuildingManagerDrawerProps {
   onExportJSON: () => void
   onImportJSON: () => void
   onClearAll: () => void
+  onResetToDefault?: () => void
 }
 
 export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
@@ -44,6 +46,7 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
   onCancelMoveBuilding,
   onUpdateBuildingName,
   onUpdateBuildingCategory,
+  onUpdateBuildingStageBadge,
   onUpdateBuildingCoords,
   onDeleteBuilding,
   onAddStage,
@@ -53,6 +56,7 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
   onExportJSON,
   onImportJSON,
   onClearAll,
+  onResetToDefault,
 }) => {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [newBuildingNameInput, setNewBuildingNameInput] = useState('')
@@ -149,7 +153,13 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
         {/* Drawer Header */}
         <div className="bld-drawer-header">
           <div className="bld-drawer-title-group">
-            <span className="bld-drawer-icon">🏢</span>
+            <span className="bld-drawer-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2" />
+                <path d="M9 22v-4h6v4" />
+                <path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" />
+              </svg>
+            </span>
             <div>
               <h2 className="bld-drawer-title">Campus Buildings & Stages</h2>
               <span className="bld-drawer-subtitle">
@@ -175,6 +185,16 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
             >
               📥 Import
             </button>
+            {onResetToDefault && (
+              <button
+                type="button"
+                className="btn-drawer-tool btn-drawer-tool--warning"
+                onClick={onResetToDefault}
+                title="Reset all markers to initial verified campus map"
+              >
+                🔄 Reset
+              </button>
+            )}
             {buildings.length > 0 && (
               <button
                 type="button"
@@ -327,7 +347,13 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
                 className={`bld-cat-chip ${selectedCatFilter === key ? 'bld-cat-chip--active' : ''}`}
                 onClick={() => setSelectedCatFilter(key)}
               >
-                {cfg.icon} {cfg.label} ({count})
+                <span
+                  className="bld-cat-chip-icon"
+                  style={{ color: cfg.color }}
+                  dangerouslySetInnerHTML={{ __html: cfg.iconSvg }}
+                />
+                <span className="bld-cat-chip-label">{cfg.label}</span>
+                <span className="bld-cat-chip-count">({count})</span>
               </button>
             )
           })}
@@ -339,7 +365,12 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
             <div className="bld-empty-card">
               {buildings.length === 0 ? (
                 <>
-                  <div className="bld-empty-icon">📍</div>
+                  <div className="bld-empty-icon">
+                    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
                   <h3>No Buildings Added Yet</h3>
                   <p>
                     Click <strong>"➕ New Building"</strong> above, type the name, and click on the 360° panorama to place your first location!
@@ -367,7 +398,11 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
                   {/* Building Header: Icon, Name Input, Category, Coords, Delete */}
                   <div className="bld-card-header">
                     <div className="bld-card-header-left">
-                      <span className="bld-card-cat-icon">{catDetails.icon}</span>
+                      <span
+                        className="bld-card-cat-icon"
+                        style={{ color: catDetails.color }}
+                        dangerouslySetInnerHTML={{ __html: catDetails.iconSvg }}
+                      />
                       <input
                         type="text"
                         value={bld.name}
@@ -389,7 +424,7 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
                       >
                         {Object.entries(CATEGORY_CONFIG).map(([k, cfg]) => (
                           <option key={k} value={k}>
-                            {cfg.icon} {cfg.label}
+                            {cfg.label}
                           </option>
                         ))}
                       </select>
@@ -413,6 +448,19 @@ export const BuildingManagerDrawer: React.FC<BuildingManagerDrawerProps> = ({
                         🗑️
                       </button>
                     </div>
+                  </div>
+
+                  {/* Stage Badge Label (shown on 360 Pin) */}
+                  <div className="bld-stage-badge-row">
+                    <span className="bld-stage-badge-label">🎪 360 Pin Label:</span>
+                    <input
+                      type="text"
+                      value={bld.stageBadgeLabel || ''}
+                      onChange={(e) => onUpdateBuildingStageBadge?.(bld.id, e.target.value)}
+                      className="bld-stage-badge-input"
+                      placeholder="e.g. Stages 15 to 28, Main Stage (leave blank for building name)"
+                      title="Custom text displayed on the 360 pin badge"
+                    />
                   </div>
 
                   {/* Relocation & Coordinate Nudge Controls */}

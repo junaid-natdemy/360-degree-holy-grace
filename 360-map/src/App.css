@@ -140,19 +140,106 @@
   z-index: 2;
   transform: translateX(-50%);
   margin: 0;
-  padding: 6px 14px;
+  padding: 5px 14px;
   border-radius: 999px;
-  background: rgba(18, 18, 18, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-size: 14px;
-  line-height: 1.4;
-  text-align: center;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #f1f5f9;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
   pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: opacity 450ms ease, transform 450ms ease;
+  will-change: opacity, transform;
+}
 
-  @media (max-width: 640px) {
-    font-size: 12px;
-    padding: 5px 10px;
+.panorama-hint--hidden {
+  opacity: 0 !important;
+  transform: translate(-50%, 10px) !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 640px) {
+  .panorama-hint {
+    display: none !important;
+  }
+}
+
+/* ========================================================
+   2D MAP SWITCHER BUTTON
+   - Top-right corner
+   - Compact, beautiful classic white pill with black font
+   - Apple-style subtle elevation and crisp typography
+   ======================================================== */
+.btn-2d-map {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 85;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #0f172a !important;
+  text-decoration: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+  user-select: none;
+}
+
+.btn-2d-map:hover {
+  background: #f8fafc;
+  color: #000000 !important;
+  border-color: rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-2d-map:active {
+  background: #f1f5f9;
+  transform: scale(0.96);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.btn-2d-map-icon {
+  font-size: 12px;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.btn-2d-map-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #0f172a;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .btn-2d-map {
+    top: 10px;
+    right: 10px;
+    padding: 4.5px 9.5px;
+    gap: 4px;
+    font-size: 10.5px;
+  }
+  .btn-2d-map-icon {
+    font-size: 11px;
+  }
+  .btn-2d-map-label {
+    font-size: 10.5px;
   }
 }
 
@@ -177,8 +264,9 @@
   visibility: visible;
   border-radius: 999px;
   background: none;
-  width: auto !important;
-  height: auto !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
   margin: 0 !important;
   padding: 0 !important;
   pointer-events: auto;
@@ -190,67 +278,342 @@
 }
 
 .campus-hotspot-pin:hover {
-  z-index: 35;
+  z-index: 9999 !important;
 }
 
-.campus-hotspot-pin:hover .pin-badge {
-  transform: scale(1.08);
-}
+/* ========================================================
+   STANDARD CAMPUS HOTSPOT PIN BADGE
+   - Hardware-accelerated dynamic scaling on zoom
+   - SVG category icons (no emojis)
+   - Crisp high-contrast typography
+   - Ground pointer needle
+   ======================================================== */
 
 .pin-badge {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px;
+  padding: 4px 10px 4px 5px;
   border-radius: 999px;
   color: #fff;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   letter-spacing: 0.02em;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 0 0 1.5px rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(8px);
-  transition: transform 140ms ease, box-shadow 140ms ease;
-  transform-origin: center center;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform-origin: bottom center;
+  transform: translateX(-50%) scale(var(--pin-zoom-scale, 0.72));
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 120ms ease, background 120ms ease;
 }
 
-.pin-icon {
-  font-size: 13px;
-  line-height: 1;
+/* Pointer needle anchored towards building coordinates */
+.pin-badge::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid rgba(15, 23, 42, 0.92);
+  pointer-events: none;
+}
+
+/* Pin Hover: Pops to prominent view at exact location */
+.campus-hotspot-pin:hover .pin-badge {
+  transform: translateX(-50%) scale(1.15) !important;
+  background: rgba(15, 23, 42, 0.98);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+.pin-icon-wrap {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.pin-icon-wrap svg {
+  display: block;
+  width: 11px;
+  height: 11px;
+}
+
+.pin-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .pin-title {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  color: #f8fafc;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
-/* 🏢 Building with Stages (Vibrant Purple / Indigo) */
-.campus-hotspot-pin--building_with_stages .pin-badge {
-  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-  border: 1px solid rgba(165, 180, 252, 0.6);
-  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.5), 0 0 0 1.5px rgba(255, 255, 255, 0.5);
+.pin-title--full {
+  display: inline;
 }
 
-/* 🏛️ Standalone Building (Blue) */
-.campus-hotspot-pin--building .pin-badge {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  border: 1px solid rgba(125, 211, 252, 0.6);
-  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.45), 0 0 0 1.5px rgba(255, 255, 255, 0.5);
+.pin-title--short {
+  display: none;
 }
 
-/* 🎪 Area with Stages (Warm Flame Amber / Orange) */
-.campus-hotspot-pin--area_with_stages .pin-badge {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  border: 1px solid rgba(253, 230, 138, 0.6);
-  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.5), 0 0 0 1.5px rgba(255, 255, 255, 0.5);
+.pin-stage-tag {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #f1f5f9;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1.5px 5.5px;
+  border-radius: 6px;
+  line-height: 1;
 }
 
-/* 📍 Area & Facilities / Parking (Emerald Green / Teal) */
-.campus-hotspot-pin--area .pin-badge {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  border: 1px solid rgba(110, 231, 183, 0.6);
-  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.45), 0 0 0 1.5px rgba(255, 255, 255, 0.5);
+/* Specific Category Accent Borders & Glows */
+.campus-hotspot-pin.cat-academic .pin-badge {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(99, 102, 241, 0.25);
+}
+.campus-hotspot-pin.cat-auditorium .pin-badge {
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(168, 85, 247, 0.25);
+}
+.campus-hotspot-pin.cat-stage .pin-badge {
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(245, 158, 11, 0.25);
+}
+.campus-hotspot-pin.cat-outdoor .pin-badge {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(16, 185, 129, 0.25);
+}
+.campus-hotspot-pin.cat-admin .pin-badge {
+  border-color: rgba(14, 165, 233, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(14, 165, 233, 0.25);
+}
+.campus-hotspot-pin.cat-parking .pin-badge {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(6, 182, 212, 0.25);
+}
+.campus-hotspot-pin.cat-vip .pin-badge {
+  border-color: rgba(244, 63, 94, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(244, 63, 94, 0.25);
+}
+.campus-hotspot-pin.cat-stall .pin-badge {
+  border-color: rgba(234, 88, 12, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(234, 88, 12, 0.25);
+}
+.campus-hotspot-pin.cat-gate .pin-badge {
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(148, 163, 184, 0.25);
+}
+.campus-hotspot-pin.cat-greenroom .pin-badge {
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.pin-badge--stage-venue {
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+}
+
+.pin-badge--stage-venue .pin-title {
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+/* ========================================================
+   COLLISION-AVOIDANCE BEACON STATE
+   When markers overlap in dense clusters (e.g. 360° rotation),
+   overlapping pins seamlessly collapse into sleek 22px category
+   icon beacons with needle.
+   ======================================================== */
+.campus-hotspot-pin.pin--collapsed {
+  z-index: 8 !important;
+}
+
+.campus-hotspot-pin.pin--collapsed .pin-badge {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  background: rgba(15, 23, 42, 0.94) !important;
+  border: 1.5px solid var(--pin-color, #fff) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), 0 0 8px var(--pin-color, rgba(255, 255, 255, 0.4)) !important;
+}
+
+.campus-hotspot-pin.pin--collapsed .pin-badge::after {
+  bottom: -4px;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid var(--pin-color, rgba(15, 23, 42, 0.92));
+}
+
+.campus-hotspot-pin.pin--collapsed .pin-icon-wrap {
+  width: 18px !important;
+  height: 18px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.campus-hotspot-pin.pin--collapsed .pin-icon-wrap svg {
+  width: 12px !important;
+  height: 12px !important;
+  color: #fff !important;
+}
+
+.campus-hotspot-pin.pin--collapsed .pin-info {
+  display: none !important;
+}
+
+/* User Hover or Touch on Collapsed Beacon: Instantly pops open with full title */
+.campus-hotspot-pin.pin--collapsed:hover,
+.campus-hotspot-pin.pin--collapsed:active,
+.campus-hotspot-pin.pin--collapsed.pin--force-expand {
+  z-index: 99999 !important;
+}
+
+.campus-hotspot-pin.pin--collapsed:hover .pin-badge,
+.campus-hotspot-pin.pin--collapsed:active .pin-badge,
+.campus-hotspot-pin.pin--collapsed.pin--force-expand .pin-badge {
+  width: auto !important;
+  height: auto !important;
+  min-width: unset !important;
+  padding: 4px 10px 4px 5px !important;
+  border-radius: 999px !important;
+  gap: 6px !important;
+  background: rgba(15, 23, 42, 0.98) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75), 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
+  transform: translateX(-50%) scale(1.1) !important;
+}
+
+.campus-hotspot-pin.pin--collapsed:hover .pin-icon-wrap,
+.campus-hotspot-pin.pin--collapsed:active .pin-icon-wrap,
+.campus-hotspot-pin.pin--collapsed.pin--force-expand .pin-icon-wrap {
+  background-color: var(--pin-color, #6366f1) !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.campus-hotspot-pin.pin--collapsed:hover .pin-info,
+.campus-hotspot-pin.pin--collapsed:active .pin-info,
+.campus-hotspot-pin.pin--collapsed.pin--force-expand .pin-info {
+  display: flex !important;
+}
+
+/* Zoomed-out and Responsive adjustments */
+.viewer-zoomed-out .pin-badge {
+  padding: 3.5px 8px 3.5px 4.5px;
+  gap: 5px;
+}
+.viewer-zoomed-out .pin-title {
+  font-size: 10.5px;
+}
+.viewer-zoomed-out .pin-stage-tag {
+  font-size: 8.5px;
+  padding: 1px 4.5px;
+}
+
+.viewer-zoomed-wide .pin-badge {
+  padding: 3px 7px 3px 4px;
+  gap: 4px;
+}
+.viewer-zoomed-wide .pin-title {
+  font-size: 10px;
+}
+
+/* Mobile Screens (<= 640px) */
+@media (max-width: 640px) {
+  .pin-badge {
+    padding: 2.5px 7px 2.5px 3.5px !important;
+    gap: 4px !important;
+  }
+  .pin-icon-wrap {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  .pin-icon-wrap svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+  .pin-title {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+  }
+  .pin-stage-tag {
+    font-size: 8px !important;
+    padding: 1px 4px !important;
+  }
+
+  .campus-hotspot-pin.pin--collapsed .pin-badge {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+  }
+  .campus-hotspot-pin.pin--collapsed .pin-icon-wrap {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  .campus-hotspot-pin.pin--collapsed .pin-icon-wrap svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .campus-hotspot-pin.pin--collapsed:hover .pin-badge,
+  .campus-hotspot-pin.pin--collapsed:active .pin-badge,
+  .campus-hotspot-pin.pin--collapsed.pin--force-expand .pin-badge {
+    padding: 3px 8px 3px 4px !important;
+    transform: translateX(-50%) scale(1.12) !important;
+  }
+}
+
+.category-pill-icon,
+.bld-cat-chip-icon,
+.search-result-cat-icon,
+.marker-modal-cat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.category-pill-icon svg,
+.bld-cat-chip-icon svg,
+.search-result-cat-icon svg,
+.marker-modal-cat-icon svg {
+  display: block;
+}
+
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-result-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 /* ========================================================
@@ -579,182 +942,325 @@
    MODALS: DETAIL MODAL & EDITOR MODAL
    ======================================================== */
 
+/* ========================================================
+   CLASSIC STANDARD VENUE DETAIL MODAL
+   - Pure White Background (#ffffff)
+   - High-Contrast Dark / Black Typography (#0f172a, #1e293b)
+   - Standard System / Classic Font Family
+   - Proper Structured Grid / Alignment
+   ======================================================== */
+
 .marker-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  z-index: 100;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  animation: fade-in 180ms ease;
+  padding: 0;
+  animation: modal-fade 180ms ease-out;
 }
 
 @media (min-width: 640px) {
   .marker-modal-backdrop {
     align-items: center;
+    padding: 24px;
   }
 }
 
-/* Detail Sheet */
 .marker-modal-sheet {
-  background: #141418;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 24px 24px 0 0;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  border-radius: 20px 20px 0 0;
   width: 100%;
   max-width: 520px;
   max-height: 85vh;
-  overflow-y: auto;
-  padding: 24px;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
-  animation: slide-up 240ms cubic-bezier(0.16, 1, 0.3, 1);
-  color: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  animation: modal-slide 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (min-width: 640px) {
   .marker-modal-sheet {
-    border-radius: 20px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+    border-radius: 16px;
+    max-height: 80vh;
   }
 }
 
-.marker-modal-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 16px;
-  margin-bottom: 18px;
+@keyframes modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.marker-modal-title-row {
+@keyframes modal-slide {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Header */
+.marker-modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.marker-modal-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-.marker-category-pill {
+.marker-modal-category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   padding: 4px 10px;
   border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }
 
-.marker-badge--building-stages {
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
-  border: 1px solid rgba(165, 180, 252, 0.3);
+.marker-modal-cat-icon {
+  display: flex;
+  align-items: center;
+  color: var(--tag-color, #475569);
 }
 
-.marker-badge--building {
-  background: rgba(2, 132, 199, 0.2);
-  color: #7dd3fc;
-  border: 1px solid rgba(125, 211, 252, 0.3);
+.marker-modal-cat-icon svg {
+  width: 13px;
+  height: 13px;
 }
 
-.marker-badge--area-stages {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fde68a;
-  border: 1px solid rgba(253, 230, 138, 0.3);
-}
-
-.marker-badge--area {
-  background: rgba(5, 150, 105, 0.2);
-  color: #6ee7b7;
-  border: 1px solid rgba(110, 231, 183, 0.3);
-}
-
-.marker-modal-close {
-  background: rgba(255, 255, 255, 0.12);
-  border: none;
-  color: #fff;
-  width: 28px;
-  height: 28px;
+.marker-modal-close-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 120ms ease, color 120ms ease;
 }
 
-.marker-modal-close:hover {
-  background: rgba(255, 255, 255, 0.22);
+.marker-modal-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .marker-modal-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
-  color: #fff;
+  color: #0f172a;
   line-height: 1.25;
+  letter-spacing: -0.015em;
 }
 
-.marker-modal-subbadge {
-  display: inline-block;
-  margin-top: 6px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
+.marker-modal-stage-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
 }
 
+.marker-modal-stage-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+}
+
+.marker-modal-stage-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* Body */
 .marker-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  background: #ffffff;
+}
+
+.marker-modal-stages-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+}
+
+.marker-modal-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .marker-modal-section-title {
-  margin: 0 0 8px 0;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
-.marker-modal-text {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.9);
+.marker-modal-section-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
-.pre-wrap {
-  white-space: pre-wrap;
-}
-
-.marker-stages-grid {
+.marker-stages-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
-.marker-stage-card {
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(165, 180, 252, 0.35);
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-
-.marker-stage-num {
-  font-size: 13px;
-  font-weight: 700;
-  color: #c7d2fe;
-}
-
-.marker-modal-coords {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 8px;
-}
-
-.marker-modal-actions {
+.marker-stage-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.marker-stage-row:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.marker-stage-row--greenroom {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.marker-stage-row--greenroom:hover {
+  background: #d1fae5;
+}
+
+.marker-stage-info-col {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  margin-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 18px;
+  flex-wrap: wrap;
+}
+
+.marker-stage-badge {
+  font-size: 12px;
+  font-weight: 700;
+  background: #e0e7ff;
+  border: 1px solid #c7d2fe;
+  color: #3730a3;
+  padding: 3px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.marker-stage-badge--greenroom {
+  background: #10b981;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.marker-stage-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.marker-stage-floor-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.marker-modal-empty-notice p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Footer */
+.marker-modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.marker-modal-edit-btn {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.marker-modal-edit-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.marker-modal-dismiss-btn {
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 8px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 120ms ease;
+  margin-left: auto;
+}
+
+.marker-modal-dismiss-btn:hover {
+  background: #1e293b;
 }
 
 .btn-primary {
@@ -1060,6 +1566,15 @@
 
 .btn-drawer-tool--danger:hover {
   background: rgba(239, 68, 68, 0.2);
+}
+
+.btn-drawer-tool--warning {
+  color: #fde047;
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.btn-drawer-tool--warning:hover {
+  background: rgba(234, 179, 8, 0.2);
 }
 
 .btn-drawer-close {
@@ -1399,6 +1914,42 @@
 
 .btn-card-delete:hover {
   background: rgba(239, 68, 68, 0.3);
+}
+
+/* Stage Badge Label Row in Building Card */
+.bld-stage-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.bld-stage-badge-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c7d2fe;
+  white-space: nowrap;
+}
+
+.bld-stage-badge-input {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #fff;
+  font-family: inherit;
+}
+
+.bld-stage-badge-input:focus {
+  outline: none;
+  border-color: #818cf8;
 }
 
 /* Coordinate row */

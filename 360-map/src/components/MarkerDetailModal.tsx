@@ -4,90 +4,138 @@ import { type CampusBuilding, getCategoryDetails } from '../types/marker'
 interface MarkerDetailModalProps {
   marker: CampusBuilding | null
   onClose: () => void
-  onEdit?: (marker: CampusBuilding) => void
   onFocus?: (marker: CampusBuilding) => void
 }
 
 export const MarkerDetailModal: React.FC<MarkerDetailModalProps> = ({
   marker,
   onClose,
-  onEdit,
-  onFocus,
 }) => {
   if (!marker) return null
 
-  const catDetails = getCategoryDetails(marker.category)
+  // User requirement: NO modal for parking, entrance, stalls, no-stage buildings, exit
+  const isExcludedCategory =
+    marker.category === 'bike_parking' ||
+    marker.category === 'car_parking' ||
+    marker.category === 'vip_parking' ||
+    marker.category === 'gate' ||
+    marker.category === 'commercial'
+
   const stages = marker.stages || []
+  const hasStages = stages.length > 0
+  const isStageVenue =
+    !isExcludedCategory &&
+    (hasStages ||
+      Boolean(marker.stageBadgeLabel) ||
+      marker.category === 'green_room' ||
+      marker.category === 'auditorium' ||
+      marker.category === 'stage_complex')
+
+  if (!isStageVenue) return null
+
+  const catDetails = getCategoryDetails(marker.category)
 
   return (
     <div className="marker-modal-backdrop" onClick={onClose}>
       <div className="marker-modal-sheet" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="marker-modal-header">
-          <div className="marker-modal-title-row">
-            <span className={`marker-category-pill ${catDetails.badgeClass}`}>
-              {catDetails.icon} {catDetails.label}
+          <div className="marker-modal-top-bar">
+            <span
+              className="marker-modal-category-tag"
+              style={{ '--tag-color': catDetails.color } as React.CSSProperties}
+            >
+              <span
+                className="marker-modal-cat-icon"
+                dangerouslySetInnerHTML={{ __html: catDetails.iconSvg }}
+              />
+              {isStageVenue ? 'Festival Stage Venue' : catDetails.label}
             </span>
-            <button className="marker-modal-close" onClick={onClose} aria-label="Close">
+            <button
+              className="marker-modal-close-btn"
+              onClick={onClose}
+              aria-label="Close dialog"
+            >
               ✕
             </button>
           </div>
+
           <h2 className="marker-modal-title">{marker.name}</h2>
-          {stages.length > 0 && (
-            <span className="marker-modal-subbadge">
-              Hosts {stages.length} {stages.length === 1 ? 'Competition Stage' : 'Competition Stages'}
-            </span>
+
+          {isStageVenue && (
+            <div className="marker-modal-stage-banner">
+              <span className="marker-modal-stage-pill">🎪 {marker.stageBadgeLabel}</span>
+              {hasStages && (
+                <span className="marker-modal-stage-count">
+                  {stages.length} {stages.length === 1 ? 'Venue / Stage' : 'Competition Stages'}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
+        {/* Body */}
         <div className="marker-modal-body">
-          {stages.length > 0 && (
-            <div className="marker-modal-section">
-              <h4 className="marker-modal-section-title">Competition Stages:</h4>
-              <div className="marker-stages-grid">
-                {stages.map((stg, i) => (
-                  <div key={i} className="marker-stage-card">
-                    <div className="marker-stage-top-row">
-                      {stg.stageNumber ? (
-                        <span className="marker-stage-num">
-                          {/^\d+$/.test(String(stg.stageNumber))
-                            ? `Stage ${stg.stageNumber}`
-                            : String(stg.stageNumber)}
+          {hasStages ? (
+            <div className="marker-modal-stages-section">
+              <div className="marker-modal-section-header">
+                <span className="marker-modal-section-title">
+                  {stages.length > 1 ? 'Hosted Stages & Rooms' : 'Stage Location'}
+                </span>
+                <span className="marker-modal-section-count">({stages.length})</span>
+              </div>
+
+              <div className="marker-stages-list">
+                {stages.map((stg, i) => {
+                  const isGreenRoom = stg.category === 'green_room' || /green room/i.test(stg.name)
+                  const stageNumDisplay =
+                    stg.stageNumber !== undefined && stg.stageNumber !== null
+                      ? /^\d+$/.test(String(stg.stageNumber))
+                        ? stg.stageNumber === 0
+                          ? 'Main Stage'
+                          : `Stage ${stg.stageNumber}`
+                        : String(stg.stageNumber)
+                      : isGreenRoom
+                      ? 'Green Room'
+                      : null
+
+                  return (
+                    <div
+                      key={i}
+                      className={`marker-stage-row ${isGreenRoom ? 'marker-stage-row--greenroom' : ''}`}
+                    >
+                      <div className="marker-stage-info-col">
+                        {stageNumDisplay && (
+                          <span
+                            className={`marker-stage-badge ${isGreenRoom ? 'marker-stage-badge--greenroom' : ''}`}
+                          >
+                            {stageNumDisplay}
+                          </span>
+                        )}
+                        <span className="marker-stage-title">{stg.name}</span>
+                      </div>
+                      {stg.floor && (
+                        <span className="marker-stage-floor-tag">
+                          📍 {stg.floor}
                         </span>
-                      ) : null}
-                      <span className="marker-stage-name">{stg.name}</span>
+                      )}
                     </div>
-                    {stg.floor && (
-                      <span className="marker-stage-floor-badge">📍 {stg.floor}</span>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
-          )}
-
-          {marker.description && (
-            <div className="marker-modal-section">
-              <h4 className="marker-modal-section-title">About this Venue:</h4>
-              <p className="marker-modal-text">{marker.description}</p>
+          ) : (
+            <div className="marker-modal-empty-notice">
+              <p>Campus facility located at Holy Grace Campus.</p>
             </div>
           )}
-
-          <div className="marker-modal-coords">
-            <span>Coordinates: Pitch {marker.pitch.toFixed(1)}° · Yaw {marker.yaw.toFixed(1)}°</span>
-          </div>
         </div>
 
-        <div className="marker-modal-actions">
-          {onFocus && (
-            <button className="btn-primary" onClick={() => onFocus(marker)}>
-              🎯 Center in 360 View
-            </button>
-          )}
-          {onEdit && (
-            <button className="btn-secondary" onClick={() => onEdit(marker)}>
-              ✏️ Edit in Manager
-            </button>
-          )}
+        {/* Action / Dismiss */}
+        <div className="marker-modal-footer">
+          <button className="marker-modal-dismiss-btn" onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>

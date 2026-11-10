@@ -61,7 +61,21 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
       <div className="campus-filter-header">
         {/* Search Bar */}
         <div className="campus-search-box">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon">
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
           <input
             type="text"
             placeholder="Search building, stage (e.g. Stage 4), floor..."
@@ -145,7 +159,13 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
               className={`category-pill ${selectedCategory === key ? 'category-pill--active' : ''}`}
               onClick={() => onSelectCategory(key)}
             >
-              {cfg.icon} {cfg.label} ({count})
+              <span
+                className="category-pill-icon"
+                style={{ color: cfg.color }}
+                dangerouslySetInnerHTML={{ __html: cfg.iconSvg }}
+              />
+              <span className="category-pill-label">{cfg.label}</span>
+              <span className="category-pill-count">({count})</span>
             </button>
           )
         })}
@@ -172,7 +192,12 @@ export const MarkerFilterBar: React.FC<MarkerFilterBarProps> = ({
                 >
                   <div className="search-result-info">
                     <span className="search-result-name">
-                      {catDetails.icon} {m.name}
+                      <span
+                        className="search-result-cat-icon"
+                        style={{ color: catDetails.color }}
+                        dangerouslySetInnerHTML={{ __html: catDetails.iconSvg }}
+                      />
+                      {m.name}
                     </span>
                     {stagesCount > 0 && (
                       <span className="search-result-badge">
